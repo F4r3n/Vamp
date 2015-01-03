@@ -24,6 +24,7 @@ public class DisplayedFace extends View {
     private int mDisplayOrientation;
     private int mOrientation;
     private static final String TAG = "facedetection";
+    private Paint textPaint = new Paint();
 
     // Correctement appelé
     public DisplayedFace(Context context) {
@@ -46,18 +47,25 @@ public class DisplayedFace extends View {
         super.onDraw(canvas);
         canvas.drawARGB(0, 0, 0, 0);
 
-        prepareMatrix(matrix, 0, getWidth(), getHeight());
-        canvas.save();
-        matrix.postRotate(90);
+        if(faces.size()>0) {
 
-        canvas.rotate(-90);
+            prepareMatrix(matrix, 0, getWidth(), getHeight());
+            canvas.save();
+            matrix.postRotate(90);
+            int score=0;
 
-        for (Face face : faces) {
-            rect.set(face.rect);
-            matrix.mapRect(rect);
-            canvas.drawRect(rect, paint);
+            canvas.rotate(-90);
+
+            for (Face face : faces) {
+                rect.set(face.rect);
+                matrix.mapRect(rect);
+                canvas.drawRect(rect, paint);
+                score =face.score;
+
+            }
+            canvas.restore();
+            canvas.drawText("score " + score, 30,30, paint);
         }
-        canvas.restore();
 
     }
 
@@ -76,6 +84,12 @@ public class DisplayedFace extends View {
         paint.setStrokeWidth(2f);
         paint.setStyle(Paint.Style.STROKE);
         paint.setAntiAlias(true);
+
+        textPaint.setAntiAlias(true);
+        textPaint.setDither(true);
+        textPaint.setTextSize(20);
+        textPaint.setColor(Color.GREEN);
+        textPaint.setStyle(Paint.Style.FILL);
     }
 
     public void setOrientation(int orientation) {
