@@ -1,0 +1,102 @@
+package com.example.magnificationvideo.mv;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.hardware.Camera;
+import android.hardware.Camera.Face;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.View;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DisplayedFace extends View {
+    private Paint paint = new Paint();
+    private Context ctx;
+    List<Camera.Face> faces = new ArrayList<Camera.Face>();
+    Matrix matrix = new Matrix();
+    RectF rect = new RectF();
+    private int mDisplayOrientation;
+    private int mOrientation;
+    private static final String TAG = "facedetection";
+
+    // Correctement appelé
+    public DisplayedFace(Context context) {
+        super(context);
+        this.ctx = context;
+        initialize();
+    }
+
+    private void initialize() {
+        paint.setAntiAlias(true);
+        paint.setDither(true);
+        paint.setColor(Color.GREEN);
+        paint.setAlpha(128);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(2);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        canvas.drawARGB(0, 0, 0, 0);
+
+        prepareMatrix(matrix, 0, getWidth(), getHeight());
+
+        for (Face face : faces) {
+            rect.set(face.rect);
+            matrix.mapRect(rect);
+            canvas.drawRect(rect, paint);
+            Toast toast1 = Toast.makeText(ctx, rect.left+" "+rect.right,Toast.LENGTH_SHORT);
+            toast1.show();
+        }
+
+    }
+
+    public RectF getRect(){
+        return rect;
+    }
+
+    public void setDisplayOrientation(int orientation) {
+        mDisplayOrientation = orientation;
+    }
+
+    public DisplayedFace(Context context, AttributeSet attr) {
+        super(context, attr);
+        this.ctx = context;
+        paint.setColor(Color.WHITE);
+        paint.setStrokeWidth(2f);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setAntiAlias(true);
+    }
+
+    public void setOrientation(int orientation) {
+        mOrientation = orientation;
+        invalidate();
+    }
+
+
+    public void setFaces(List<Camera.Face> faces) {
+        this.faces = faces;
+        invalidate();
+    }
+
+    public static void prepareMatrix(Matrix matrix, int displayOrientation,
+                                     int viewWidth, int viewHeight) {
+
+        boolean mirror = (1 == Camera.CameraInfo.CAMERA_FACING_FRONT);
+        matrix.setScale(mirror ? -1 : 1, 1);
+        matrix.postRotate(displayOrientation);
+
+
+        matrix.postScale(viewWidth / 2000f, viewHeight / 2000f);
+        matrix.postTranslate(viewWidth / 2f, viewHeight / 2f);
+    }
+
+}
