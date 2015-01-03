@@ -9,7 +9,6 @@ import android.graphics.RectF;
 import android.hardware.Camera;
 import android.hardware.Camera.Face;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -48,14 +47,17 @@ public class DisplayedFace extends View {
         canvas.drawARGB(0, 0, 0, 0);
 
         prepareMatrix(matrix, 0, getWidth(), getHeight());
+        canvas.save();
+        matrix.postRotate(90);
+
+        canvas.rotate(-90);
 
         for (Face face : faces) {
             rect.set(face.rect);
             matrix.mapRect(rect);
             canvas.drawRect(rect, paint);
-            Toast toast1 = Toast.makeText(ctx, rect.left+" "+rect.right,Toast.LENGTH_SHORT);
-            toast1.show();
         }
+        canvas.restore();
 
     }
 
@@ -92,7 +94,6 @@ public class DisplayedFace extends View {
 
         boolean mirror = (1 == Camera.CameraInfo.CAMERA_FACING_FRONT);
         matrix.setScale(mirror ? -1 : 1, 1);
-        matrix.postRotate(displayOrientation);
 
 
         matrix.postScale(viewWidth / 2000f, viewHeight / 2000f);
