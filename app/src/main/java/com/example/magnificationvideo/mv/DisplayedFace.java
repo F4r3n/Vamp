@@ -1,5 +1,4 @@
 package com.example.magnificationvideo.mv;
-
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -10,6 +9,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.Face;
 import android.util.AttributeSet;
 import android.view.View;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,12 +20,12 @@ public class DisplayedFace extends View {
     List<Camera.Face> faces = new ArrayList<Camera.Face>();
     Matrix matrix = new Matrix();
     RectF rect = new RectF();
-    RectF rectTransformed;
     private int mDisplayOrientation;
     private int mOrientation;
     private static final String TAG = "facedetection";
     private Paint textPaint = new Paint();
 
+    
     public DisplayedFace(Context context) {
         super(context);
         this.ctx = context;
@@ -53,25 +53,23 @@ public class DisplayedFace extends View {
             matrix.postRotate(90);
             int score=0;
 
-
             canvas.rotate(-90);
 
             for (Face face : faces) {
                 rect.set(face.rect);
                 matrix.mapRect(rect);
                 canvas.drawRect(rect, paint);
-                rectTransformed = new RectF(rect);
                 score =face.score;
+
             }
             canvas.restore();
-            String sc = "score" + score;
-            canvas.drawText(sc, 30,30, paint);
+            canvas.drawText("score " + score, 30,30, paint);
         }
 
     }
 
     public RectF getRect(){
-        return rectTransformed;
+        return rect;
     }
 
     public void setDisplayOrientation(int orientation) {

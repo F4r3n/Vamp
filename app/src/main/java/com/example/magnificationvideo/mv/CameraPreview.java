@@ -1,16 +1,14 @@
 package com.example.magnificationvideo.mv;
 
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import android.graphics.RectF;
 
+import android.graphics.RectF;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
-
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
@@ -58,7 +56,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
             mCamera.setFaceDetectionListener(new Camera.FaceDetectionListener() {
                 @Override
                 public void onFaceDetection(Camera.Face[] faces, Camera camera) {
-
+                    Log.d("facedetection", "Faces Found: " + faces.length );
                     df = ((DisplayedFace)(((Activity)getContext()).findViewById(R.id.viewfinder_view)));
                     df.setFaces(Arrays.asList(faces));
                 }
@@ -86,20 +84,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
         mCamera.addCallbackBuffer(data);
     }
-
-    public void changeOrientation(){
-        Camera.Parameters p = mCamera.getParameters();
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
-        {
-            p.set("orientation", "portrait");
-            p.set("rotation",90);
-        }
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
-        {
-            p.set("orientation", "landscape");
-            p.set("rotation", 90);
-        }
-    }
+    
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         // The Surface has been created, acquire the camera and tell it where
@@ -109,39 +94,50 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
                 mCamera.setPreviewDisplay(holder);
 
                 Camera.Parameters parameters = mCamera.getParameters();
-                parameters.setRotation(90);
+                changeOrientation();
                 mCamera.setParameters(parameters);
-
-
             }
         } catch (IOException exception) {
             Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
         }
     }
+    
+    public void changeOrientation() {
+        Camera.Parameters parameters = mCamera.getParameters();
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+        	parameters.set("orientation", "portrait");
+        	parameters.set("rotation",90);
+            mCamera.setDisplayOrientation(90);
+        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+        	parameters.set("orientation", "landscape");
+        	parameters.set("rotation", 90);
+            mCamera.setDisplayOrientation(180);
+        }
+    }
+    
+    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+        // Now that the size is known, set up the camera parameters and begin the preview.
+        Camera.Parameters parameters = mCamera.getParameters();
+        parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+        requestLayout();
+        
+        mCamera.setParameters(parameters);
+        mCamera.startPreview();
+        mCamera.startFaceDetection();
+    }
 
 
 
     public void surfaceDestroyed(SurfaceHolder holder) {
-            // Surface will be destroyed when we return, so stop the preview.
-        if (mCamera != null) {
-                mCamera.stopPreview();
-                mCamera.setPreviewCallback(null);
-                mCamera.release();
-                mCamera = null;
+        if (mHolder != null) {
+        	mHolder.removeCallback(this);
+        	mHolder = null; 
         }
-    }
-
-    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-        // Now that the size is known, set up the camera parameters and begin
-        // the preview.
-        Camera.Parameters parameters = mCamera.getParameters();
-        parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
-        requestLayout();
-
-        mCamera.setParameters(parameters);
-        mCamera.setDisplayOrientation(90);
-        mCamera.startPreview();
-        mCamera.startFaceDetection();
+        if (mCamera != null) {
+        	mCamera.stopPreview();
+        	mCamera.release();
+        	mCamera = null;
+        }
     }
 
 
@@ -258,6 +254,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        Toast toast = Toast.makeText(mContext, "onLayout",Toast.LENGTH_LONG);
+        toast.show();
         if (changed && getChildCount() > 0) {
             final View child = getChildAt(0);
 
