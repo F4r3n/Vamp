@@ -58,7 +58,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
             mCamera.setFaceDetectionListener(new Camera.FaceDetectionListener() {
                 @Override
                 public void onFaceDetection(Camera.Face[] faces, Camera camera) {
-                    Log.d("facedetection", "Faces Found: " + faces.length );
+
                     df = ((DisplayedFace)(((Activity)getContext()).findViewById(R.id.viewfinder_view)));
                     df.setFaces(Arrays.asList(faces));
                 }
@@ -125,6 +125,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
             // Surface will be destroyed when we return, so stop the preview.
         if (mCamera != null) {
                 mCamera.stopPreview();
+                mCamera.setPreviewCallback(null);
+                mCamera.release();
+                mCamera = null;
         }
     }
 

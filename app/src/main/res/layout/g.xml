@@ -5,14 +5,14 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
     <com.example.magnificationvideo.mv.CameraPreview
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
         android:id="@+id/surface_view">
     </com.example.magnificationvideo.mv.CameraPreview>
     <com.example.magnificationvideo.mv.DisplayedFace
         android:id="@+id/viewfinder_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
         android:background="#0000" />
 
 </RelativeLayout>
