@@ -20,10 +20,10 @@ public class DisplayedFace extends View {
     List<Camera.Face> faces = new ArrayList<Camera.Face>();
     Matrix matrix = new Matrix();
     RectF rect = new RectF();
+    RectF rectTransformed;
     private int mDisplayOrientation;
     private int mOrientation;
     private static final String TAG = "facedetection";
-    private Paint textPaint = new Paint();
 
     
     public DisplayedFace(Context context) {
@@ -33,12 +33,11 @@ public class DisplayedFace extends View {
     }
 
     private void initialize() {
-        paint.setAntiAlias(true);
-        paint.setDither(true);
-        paint.setColor(Color.GREEN);
-        paint.setAlpha(128);
+        paint.setColor(Color.WHITE);
+        paint.setStrokeWidth(2f);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2);
+        paint.setAntiAlias(true);
+        rectTransformed =new RectF();
     }
 
     @Override
@@ -58,6 +57,7 @@ public class DisplayedFace extends View {
             for (Face face : faces) {
                 rect.set(face.rect);
                 matrix.mapRect(rect);
+                rectTransformed.set(rect);
                 canvas.drawRect(rect, paint);
                 score =face.score;
 
@@ -69,7 +69,7 @@ public class DisplayedFace extends View {
     }
 
     public RectF getRect(){
-        return rect;
+        return rectTransformed;
     }
 
     public void setDisplayOrientation(int orientation) {
@@ -79,16 +79,9 @@ public class DisplayedFace extends View {
     public DisplayedFace(Context context, AttributeSet attr) {
         super(context, attr);
         this.ctx = context;
-        paint.setColor(Color.WHITE);
-        paint.setStrokeWidth(2f);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setAntiAlias(true);
+        initialize();
 
-        textPaint.setAntiAlias(true);
-        textPaint.setDither(true);
-        textPaint.setTextSize(20);
-        textPaint.setColor(Color.GREEN);
-        textPaint.setStyle(Paint.Style.FILL);
+
     }
 
     public void setOrientation(int orientation) {
