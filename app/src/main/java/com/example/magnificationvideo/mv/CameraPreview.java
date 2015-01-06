@@ -14,11 +14,13 @@ import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.util.AttributeSet;
 import android.util.Log;
+
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
 
 public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
     private SurfaceHolder mHolder;
@@ -30,6 +32,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
     private List<Size> mSupportedPreviewSizes;
     private Context mContext;
     private DisplayedFace df;
+    private int width;
+    private int height;
 
 
     //private List<int[]> tabData = new ArrayList<int[]>();
@@ -94,7 +98,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
                 mCamera.setPreviewDisplay(holder);
 
                 Camera.Parameters parameters = mCamera.getParameters();
-                changeOrientation();
+                //changeOrientation();
                 mCamera.setParameters(parameters);
             }
         } catch (IOException exception) {
@@ -111,17 +115,13 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
         } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
         	parameters.set("orientation", "landscape");
         	parameters.set("rotation", 90);
-            mCamera.setDisplayOrientation(180);
+            mCamera.setDisplayOrientation(-90);
         }
     }
     
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-        // Now that the size is known, set up the camera parameters and begin the preview.
-        Camera.Parameters parameters = mCamera.getParameters();
-        parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+
         requestLayout();
-        
-        mCamera.setParameters(parameters);
         mCamera.startPreview();
         mCamera.startFaceDetection();
     }
@@ -219,11 +219,28 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
         final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
         final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
+        this.width = width;
+        this.height = height;
+        setMeasuredDimension(width, height);
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+            this.width = height;
+            this.height =width;
+            mCamera.setDisplayOrientation(90);
+            setMeasuredDimension(this.width, this.height);
 
-        if (mSupportedPreviewSizes != null) {
-            mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
+
+        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            mCamera.setDisplayOrientation(0);
+
+            setMeasuredDimension(width, height);
         }
 
+
+            if (mSupportedPreviewSizes != null) {
+                mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
+            }
+
+/*
         float ratio;
         if(mPreviewSize.height >= mPreviewSize.width)
             ratio = (float) mPreviewSize.height / (float) mPreviewSize.width;
@@ -231,9 +248,12 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
             ratio = (float) mPreviewSize.width / (float) mPreviewSize.height;
 
         // One of these methods should be used, second method squishes preview slightly
-       // setMeasuredDimension(width, (int) (width * ratio));
 
-        setMeasuredDimension((int) (width * ratio), height);
+        Camera.Parameters parameters = mCamera.getParameters();
+
+
+
+        }*/
     }
 
 
@@ -254,8 +274,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        Toast toast = Toast.makeText(mContext, "onLayout",Toast.LENGTH_LONG);
-        toast.show();
+
         if (changed && getChildCount() > 0) {
             final View child = getChildAt(0);
 

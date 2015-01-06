@@ -104,8 +104,4 @@ public class MagnificationVideo extends Activity {
        if (df != null)
             df.setOrientation(degree);
     }
-
-
-
-
 }
