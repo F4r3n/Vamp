@@ -263,20 +263,31 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
             this.width = height;
             this.height = width;
             mCamera.setDisplayOrientation(90);
-            setMeasuredDimension(this.width, this.height);
-            System.out.println(getDisplayRotation(a));
+            setMeasuredDimension(height, width);
+            if(df!=null)
+                df.setDisplayOrientation(90);
+            return;
         } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
         	int rotation = getDisplayRotation(a);
+            int rotationCompensation = 1;
         	switch (rotation) {
 				case 90:	
 		        	mCamera.setDisplayOrientation(0);
+                    rotationCompensation = 0;
 					break;
 				case 270:
 		        	mCamera.setDisplayOrientation(180);
+                    rotationCompensation = 180;
 					break;
 				default:
 					break;
 			}
+            if(df!=null) {
+                if (rotationCompensation == 1)
+                    df.setDisplayOrientation(90);
+                else
+                    df.setDisplayOrientation(rotationCompensation);
+            }
             setMeasuredDimension(width, height);
         
         }
@@ -304,12 +315,12 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
         Camera.Parameters params = mCamera.getParameters();
         if (params.getMaxNumDetectedFaces() <= 0) {
-            Toast toast = Toast.makeText(mContext, "Face detected not supported",Toast.LENGTH_LONG);
+            Toast toast = Toast.makeText(mContext, "Face detected not supported",Toast.LENGTH_SHORT);
             toast.show();
             Log.e(TAG, "Face Detection not supported");
         }
         else {
-            Toast toast = Toast.makeText(mContext, "Face detected supported",Toast.LENGTH_LONG);
+            Toast toast = Toast.makeText(mContext, "Face detected supported",Toast.LENGTH_SHORT);
             toast.show();
         }
     }

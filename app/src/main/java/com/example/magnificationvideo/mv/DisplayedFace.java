@@ -25,12 +25,8 @@ public class DisplayedFace extends View {
     private int mOrientation;
     private static final String TAG = "facedetection";
 
-    
-    public DisplayedFace(Context context) {
-        super(context);
-        this.ctx = context;
-        initialize();
-    }
+
+
 
     private void initialize() {
         paint.setColor(Color.WHITE);
@@ -46,13 +42,18 @@ public class DisplayedFace extends View {
         canvas.drawARGB(0, 0, 0, 0);
 
         if(faces.size()>0) {
+            if(mDisplayOrientation == 90)
+                prepareMatrix(matrix, 0,getHeight() ,getWidth());
 
-            prepareMatrix(matrix, 0, getWidth(), getHeight());
+            else
+                prepareMatrix(matrix, 0, getWidth(), getHeight());
+
+
             canvas.save();
-            matrix.postRotate(90);
+            matrix.postRotate(mDisplayOrientation);
             int score=0;
 
-            canvas.rotate(-90);
+            canvas.rotate(-mDisplayOrientation);
 
             for (Face face : faces) {
                 rect.set(face.rect);
