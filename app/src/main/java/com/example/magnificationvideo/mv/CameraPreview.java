@@ -24,70 +24,88 @@ import android.widget.Toast;
 
 
 public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
-    private SurfaceHolder mHolder;
+    private SurfaceHolder _holder;
     private Camera mCamera;
     private String TAG = "";
-    private boolean mFinished = false;
+    private boolean _finished = false;
     private Size mPreviewSize;
-    private SurfaceView mSurfaceView;
-    private List<Size> mSupportedPreviewSizes;
-    private Context mContext;
-    private DisplayedFace df;
-    private int width;
-    private int height;
-    private Activity a;
+    private SurfaceView _surfaceView;
+    private List<Size> _supportedPreviewSizes;
+    private Context _context;
+    private DisplayedFace _df;
+    private Activity _a;
+    private int _rotationCompensation = 0;
 
     //private List<int[]> tabData = new ArrayList<int[]>();
-    
+
     // Non appelé
     public CameraPreview(Context context) {
         super(context);
 
-        mSurfaceView = new SurfaceView(context);
-        addView(mSurfaceView);
-        
-        mHolder = mSurfaceView.getHolder();
-        mHolder.addCallback(this);
-        
-        mContext = context;
-        a = (Activity)context;
+        _surfaceView = new SurfaceView(context);
+        addView(_surfaceView);
 
-        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        _holder = _surfaceView.getHolder();
+        _holder.addCallback(this);
+
+        _context = context;
+        _a = (Activity) context;
+
+        _holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
-    
+
     public CameraPreview(Context context, AttributeSet attr) {
         super(context, attr);
-        System.out.println("lololololol");
 
-        mContext = context;
-        a = (Activity)context;
-        mSurfaceView = new SurfaceView(context);
-        addView(mSurfaceView);
+        _context = context;
+        _a = (Activity) context;
+        _surfaceView = new SurfaceView(context);
+        addView(_surfaceView);
 
-        mHolder = mSurfaceView.getHolder();
-        mHolder.addCallback(this);
-        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        _holder = _surfaceView.getHolder();
+        _holder.addCallback(this);
+        _holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
 
     public void setCamera(Camera camera) {
         mCamera = camera;
         if (mCamera != null) {
-            mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+            _supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
             requestLayout();
             faceDetectionSupported();
             mCamera.setFaceDetectionListener(new Camera.FaceDetectionListener() {
                 @Override
                 public void onFaceDetection(Camera.Face[] faces, Camera camera) {
-                    Log.d("facedetection", "Faces Found: " + faces.length );
-                    df = ((DisplayedFace)(((Activity)getContext()).findViewById(R.id.viewfinder_view)));
-                    df.setFaces(Arrays.asList(faces));
+                    Log.d("facedetection", "Faces Found: " + faces.length);
+                    _df = ((DisplayedFace) (((Activity) getContext()).findViewById(R.id.viewfinder_view)));
+                    _df.setFaces(Arrays.asList(faces));
+                    int rotation = getDisplayRotation(_a);
+
+                    if (_df != null) {
+                        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_UNDEFINED) {
+                            return;
+                        }
+                        //Toast toast = Toast.makeText(_context, rotation, Toast.LENGTH_SHORT);
+                        //toast.show();
+                        _rotationCompensation = MagnificationVideo.roundOrientation(rotation);
+
+                        int orientationCompensation = _rotationCompensation + rotation;
+                        if (_rotationCompensation != orientationCompensation) {
+                            _rotationCompensation = orientationCompensation;
+                            _df.setDisplayOrientation(_rotationCompensation);
+
+                            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+                            }
+                        }
+
+                    }
                 }
             });
         }
     }
 
     public void onPreviewFrame(byte[] data, Camera camera) {
-        if (mFinished)
+        if (_finished)
             return;
 
 
@@ -95,9 +113,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
         int[] rgb = new int[size];
 
         decodeYUV420RGB(rgb, data, mPreviewSize.width, mPreviewSize.height);
-      //  tabData.add(rgb);
-        if(df!=null) {
-            RectF rect = df.getRect();
+        //  tabData.add(rgb);
+        if (_df != null) {
+            RectF rect = _df.getRect();
         }
 
         Integer red = Color.red(rgb[0]);
@@ -106,7 +124,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
         mCamera.addCallbackBuffer(data);
     }
-    
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         // The Surface has been created, acquire the camera and tell it where to draw.
@@ -122,7 +140,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
             Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
         }
     }
-    
+
 //    public void changeOrientation() {
 //        Camera.Parameters parameters = mCamera.getParameters();
 //        System.out.println("test");
@@ -138,7 +156,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 //           mCamera.setDisplayOrientation(90);
 //        }
 //    }
-    
+
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
         requestLayout();
         mCamera.startPreview();
@@ -147,14 +165,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
 
     public void surfaceDestroyed(SurfaceHolder holder) {
-        if (mHolder != null) {
-        	mHolder.removeCallback(this);
-        	mHolder = null; 
+        if (_holder != null) {
+            _holder.removeCallback(this);
+            _holder = null;
         }
         if (mCamera != null) {
-        	mCamera.stopPreview();
-        	mCamera.release();
-        	mCamera = null;
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
         }
     }
 
@@ -213,7 +231,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
         for (Size size : sizes) {
             double ratio = (double) size.width / size.height;
             if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) {
-                continue;	
+                continue;
             }
             if (Math.abs(size.height - targetHeight) < minDiff) {
                 optimalSize = size;
@@ -232,72 +250,64 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
         }
         return optimalSize;
     }
-    
-    public int getDisplayRotation(Activity activity) {
-    	int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-	
-    	switch (rotation) {
-    		case Surface.ROTATION_0:
-    			return 0;
-			case Surface.ROTATION_90:
-				return 90;
-			case Surface.ROTATION_180:
-				return 180;
-			case Surface.ROTATION_270:
-				return 270;
-    	}
-    	return rotation;
-	}
 
-    
+    public int getDisplayRotation(Activity activity) {
+        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                return 0;
+            case Surface.ROTATION_90:
+                return 90;
+            case Surface.ROTATION_180:
+                return 180;
+            case Surface.ROTATION_270:
+                return 270;
+        }
+        return rotation;
+    }
+
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
         final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
-        this.width = width;
-        this.height = height;
-        setMeasuredDimension(width, height);
-        
-        
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
-            this.width = height;
-            this.height = width;
+
+        //setMeasuredDimension(width, height);
+
+
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+
             mCamera.setDisplayOrientation(90);
             setMeasuredDimension(height, width);
-            if(df!=null)
-                df.setDisplayOrientation(90);
             return;
-        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        	int rotation = getDisplayRotation(a);
-            int rotationCompensation = 1;
-        	switch (rotation) {
-				case 90:	
-		        	mCamera.setDisplayOrientation(0);
-                    rotationCompensation = 0;
-					break;
-				case 270:
-		        	mCamera.setDisplayOrientation(180);
-                    rotationCompensation = 180;
-					break;
-				default:
-					break;
-			}
-            if(df!=null) {
-                if (rotationCompensation == 1)
-                    df.setDisplayOrientation(90);
-                else
-                    df.setDisplayOrientation(rotationCompensation);
-            }
-            setMeasuredDimension(width, height);
-        
-        }
 
-        if (mSupportedPreviewSizes != null) {
-            mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
+
+        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            int rotation = getDisplayRotation(_a);
+            switch (rotation) {
+                case 90:
+                    mCamera.setDisplayOrientation(0);
+                    break;
+                case 270:
+                    mCamera.setDisplayOrientation(180);
+                    break;
+                default:
+                    break;
+            }
+
+
+
+        }
+        setMeasuredDimension(width, height);
+
+
+        if (_supportedPreviewSizes != null) {
+            mPreviewSize = getOptimalPreviewSize(_supportedPreviewSizes, width, height);
         }
 
         /*
-	        float ratio;
+            float ratio;
 	        if(mPreviewSize.height >= mPreviewSize.width)
 	            ratio = (float) mPreviewSize.height / (float) mPreviewSize.width;
 	        else
@@ -310,17 +320,15 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
     }
 
 
-
-    private void faceDetectionSupported(){
+    private void faceDetectionSupported() {
 
         Camera.Parameters params = mCamera.getParameters();
         if (params.getMaxNumDetectedFaces() <= 0) {
-            Toast toast = Toast.makeText(mContext, "Face detected not supported",Toast.LENGTH_SHORT);
+            Toast toast = Toast.makeText(_context, "Face detected not supported", Toast.LENGTH_SHORT);
             toast.show();
             Log.e(TAG, "Face Detection not supported");
-        }
-        else {
-            Toast toast = Toast.makeText(mContext, "Face detected supported",Toast.LENGTH_SHORT);
+        } else {
+            Toast toast = Toast.makeText(_context, "Face detected supported", Toast.LENGTH_SHORT);
             toast.show();
         }
     }
