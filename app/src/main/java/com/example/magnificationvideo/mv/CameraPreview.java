@@ -35,6 +35,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
     private DisplayedFace _df;
     private Activity _a;
     private int _rotationCompensation = 0;
+    private int _width,_height;
 
     //private List<int[]> tabData = new ArrayList<int[]>();
 
@@ -80,6 +81,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
                     _df = ((DisplayedFace) (((Activity) getContext()).findViewById(R.id.viewfinder_view)));
                     _df.setFaces(Arrays.asList(faces));
                     int rotation = getDisplayRotation(_a);
+                    _df.setRealSize(_width,_height);
 
                     if (_df != null) {
                         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_UNDEFINED) {
@@ -87,15 +89,20 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
                         }
                         //Toast toast = Toast.makeText(_context, rotation, Toast.LENGTH_SHORT);
                         //toast.show();
+                        _df.setRealSize(_width,_height);
                         _rotationCompensation = MagnificationVideo.roundOrientation(rotation);
+                        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+                            _df.setDisplayOrientation(0);
+                            _df.setRealSize(_height,_width);
+
+                        }
 
                         int orientationCompensation = _rotationCompensation + rotation;
                         if (_rotationCompensation != orientationCompensation) {
                             _rotationCompensation = orientationCompensation;
                             _df.setDisplayOrientation(_rotationCompensation);
 
-                            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-                            }
+
                         }
 
                     }
@@ -272,7 +279,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
         final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
-
+        _width = width;
+        _height = height;
         //setMeasuredDimension(width, height);
 
 

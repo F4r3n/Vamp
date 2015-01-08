@@ -1,4 +1,5 @@
 package com.example.magnificationvideo.mv;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -24,8 +25,7 @@ public class DisplayedFace extends View {
     private int mDisplayOrientation;
     private int mOrientation;
     private static final String TAG = "facedetection";
-
-
+    private int _x, _y;
 
 
     private void initialize() {
@@ -33,7 +33,12 @@ public class DisplayedFace extends View {
         paint.setStrokeWidth(2f);
         paint.setStyle(Paint.Style.STROKE);
         paint.setAntiAlias(true);
-        rectTransformed =new RectF();
+        rectTransformed = new RectF();
+    }
+
+    public void setRealSize(int x, int y) {
+        _x = x;
+        _y = y;
     }
 
     @Override
@@ -41,17 +46,14 @@ public class DisplayedFace extends View {
         super.onDraw(canvas);
         canvas.drawARGB(0, 0, 0, 0);
 
-        if(faces.size()>0) {
-            if(mDisplayOrientation == 90)
-                prepareMatrix(matrix, 0,getHeight() ,getWidth());
+        if (faces.size() > 0) {
 
-            else
-                prepareMatrix(matrix, 0, getWidth(), getHeight());
+            prepareMatrix(matrix, 0, _x, _y);
 
 
             canvas.save();
             matrix.postRotate(mDisplayOrientation);
-            int score=0;
+            int score = 0;
 
             canvas.rotate(-mDisplayOrientation);
 
@@ -60,16 +62,16 @@ public class DisplayedFace extends View {
                 matrix.mapRect(rect);
                 rectTransformed.set(rect);
                 canvas.drawRect(rect, paint);
-                score =face.score;
+                score = face.score;
 
             }
             canvas.restore();
-            canvas.drawText("score " + score, 30,30, paint);
+            canvas.drawText("score " + score, 30, 30, paint);
         }
 
     }
 
-    public RectF getRect(){
+    public RectF getRect() {
         return rectTransformed;
     }
 
