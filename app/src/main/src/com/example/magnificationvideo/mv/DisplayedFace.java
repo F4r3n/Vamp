@@ -102,7 +102,7 @@ public class DisplayedFace extends View {
                                      int viewWidth, int viewHeight) {
 
         boolean mirror = (1 == Camera.CameraInfo.CAMERA_FACING_FRONT);
-        matrix.setScale(mirror ? -1 : 1, 1);
+        matrix.setScale(mirror ? -1 : -1, 1);
 
 
         matrix.postScale(viewWidth / 2000f, viewHeight / 2000f);
