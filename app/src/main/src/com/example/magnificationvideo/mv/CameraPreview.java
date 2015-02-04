@@ -22,8 +22,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
-		PreviewCallback {
+public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
@@ -76,8 +75,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		@Override
 		public void onFaceDetection(Camera.Face[] faces, Camera camera) {
 			Log.d("facedetection", "Faces Found: " + faces.length);
-			_df = ((DisplayedFace) (((Activity) getContext())
-					.findViewById(R.id.viewfinder_view)));
+			_df = ((DisplayedFace) (((Activity) getContext()).findViewById(R.id.viewfinder_view)));
 			_df.setFaces(Arrays.asList(faces));
 			int rotation = getDisplayRotation(_a);
 			_df.setRealSize(_width, _height);
