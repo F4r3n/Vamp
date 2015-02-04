@@ -37,6 +37,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 	private int _rotationCompensation = 0;
 	private int _width, _height;
 
+	@SuppressWarnings("deprecation")
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
 
@@ -52,62 +53,62 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 
 	public void setCamera(Camera camera) {
 		mCamera = camera;
-		new CountDownTimer(3000, 1000) {
-
-			public void onTick(long millisUntilFinished) {
-				// Toast.makeText(_context, "seconds remaining: " +
-				// millisUntilFinished / 1000, Toast.LENGTH_SHORT).show();
-			}
-
-			public void onFinish() {
-				Toast.makeText(_context, "done", Toast.LENGTH_SHORT).show();
-			}
-		}.start();
+//		new CountDownTimer(3000, 1000) {
+//
+//			public void onTick(long millisUntilFinished) {
+//				// Toast.makeText(_context, "seconds remaining: " +
+//				// millisUntilFinished / 1000, Toast.LENGTH_SHORT).show();
+//			}
+//
+//			public void onFinish() {
+//				Toast.makeText(_context, "done", Toast.LENGTH_SHORT).show();
+//			}
+//		}.start();
 		if (mCamera != null) {
-			_supportedPreviewSizes = mCamera.getParameters()
-					.getSupportedPreviewSizes();
+			_supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 			requestLayout();
 			faceDetectionSupported();
-			mCamera.setFaceDetectionListener(new Camera.FaceDetectionListener() {
-				@Override
-				public void onFaceDetection(Camera.Face[] faces, Camera camera) {
-					Log.d("facedetection", "Faces Found: " + faces.length);
-					_df = ((DisplayedFace) (((Activity) getContext())
-							.findViewById(R.id.viewfinder_view)));
-					_df.setFaces(Arrays.asList(faces));
-					int rotation = getDisplayRotation(_a);
-					_df.setRealSize(_width, _height);
-
-					if (_df != null) {
-						if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_UNDEFINED) {
-							return;
-						}
-
-						_df.setRealSize(_width, _height);
-						_rotationCompensation = MagnificationVideo
-								.roundOrientation(rotation);
-						if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-							_df.setDisplayOrientation(0);
-							_df.setRealSize(_height, _width);
-
-						}
-
-						int orientationCompensation = _rotationCompensation
-								+ rotation;
-						if (_rotationCompensation != orientationCompensation) {
-							_rotationCompensation = orientationCompensation;
-							_df.setDisplayOrientation(_rotationCompensation);
-
-						}
-
-					}
-				}
-			});
+			mCamera.setFaceDetectionListener(fdl);
 		}
 	}
+	
+	Camera.FaceDetectionListener fdl = new Camera.FaceDetectionListener() {
+		@Override
+		public void onFaceDetection(Camera.Face[] faces, Camera camera) {
+			Log.d("facedetection", "Faces Found: " + faces.length);
+			_df = ((DisplayedFace) (((Activity) getContext())
+					.findViewById(R.id.viewfinder_view)));
+			_df.setFaces(Arrays.asList(faces));
+			int rotation = getDisplayRotation(_a);
+			_df.setRealSize(_width, _height);
+
+			if (_df != null) {
+				if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_UNDEFINED) {
+					return;
+				}
+
+				_df.setRealSize(_width, _height);
+				_rotationCompensation = MagnificationVideo
+						.roundOrientation(rotation);
+				if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+					_df.setDisplayOrientation(0);
+					_df.setRealSize(_height, _width);
+
+				}
+
+				int orientationCompensation = _rotationCompensation
+						+ rotation;
+				if (_rotationCompensation != orientationCompensation) {
+					_rotationCompensation = orientationCompensation;
+					_df.setDisplayOrientation(_rotationCompensation);
+
+				}
+
+			}
+		}
+	};
 
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		// Toast.makeText(_context, "callBack", Toast.LENGTH_SHORT).show();
 		if (_finished)
 			return;
 		Size previewSize = camera.getParameters().getPreviewSize();
@@ -120,12 +121,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		RectF rect = null;
 		if (_df != null) {
 			 rect = _df.getRect();
-			 Toast.makeText(_context, "Rect", Toast.LENGTH_SHORT).show();
-
 		}
 		if (rect != null) {
-			// Toast.makeText(_context, "test" + Float.toString(rect.centerX()),
-			// Toast.LENGTH_SHORT).show();
+			System.out.println("ok");
 		}
 		float red = Color.red(rgb[0]);
 		float green = Color.green(rgb[0]);
@@ -136,8 +134,6 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-		// The Surface has been created, acquire the camera and tell it where to
-		// draw.
 		try {
 			if (mCamera != null) {
 				mCamera.setPreviewDisplay(holder);
@@ -150,24 +146,6 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 			Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
 		}
 	}
-
-	// public void changeOrientation() {
-	// Camera.Parameters parameters = mCamera.getParameters();
-	// System.out.println("test");
-	//
-	// if (getResources().getConfiguration().orientation ==
-	// Configuration.ORIENTATION_PORTRAIT){
-	// parameters.set("orientation", "portrait");
-	// parameters.set("rotation",90);
-	// mCamera.setDisplayOrientation(90);
-	//
-	// } else if (getResources().getConfiguration().orientation ==
-	// Configuration.ORIENTATION_LANDSCAPE){
-	// parameters.set("orientation", "landscape");
-	// parameters.set("rotation", 90);
-	// mCamera.setDisplayOrientation(90);
-	// }
-	// }
 
 	public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
 		requestLayout();
@@ -290,17 +268,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 				heightMeasureSpec);
 		_width = width;
 		_height = height;
-		// Log.d("Size", "s" + _width +" " +_height);
-
-		// setMeasuredDimension(width, height);
 
 		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-
 			mCamera.setDisplayOrientation(90);
 			setMeasuredDimension(height, width);
-
 			return;
-
 		} else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
 			int rotation = getDisplayRotation(_a);
 			switch (rotation) {
@@ -316,35 +288,20 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 			setMeasuredDimension(width, height);
 
 		}
-
-		/*
-		 * float ratio; if(mPreviewSize.height >= mPreviewSize.width) ratio =
-		 * (float) mPreviewSize.height / (float) mPreviewSize.width; else ratio
-		 * = (float) mPreviewSize.width / (float) mPreviewSize.height;
-		 * 
-		 * // One of these methods should be used, second method squishes
-		 * preview slightly
-		 * 
-		 * Camera.Parameters parameters = mCamera.getParameters(); }
-		 */
 	}
 
 	private void faceDetectionSupported() {
-
 		Camera.Parameters params = mCamera.getParameters();
 		if (params.getMaxNumDetectedFaces() <= 0) {
-
-			Log.e(TAG, "Face Detection not supported");
-		} else {
-			Toast toast = Toast.makeText(_context, "Face detected supported",
-					Toast.LENGTH_SHORT);
+			Toast toast = Toast.makeText(_context, "Face Detection not supported", Toast.LENGTH_SHORT);
 			toast.show();
+		} else {
+			Log.e(TAG, "Face Detection supported");
 		}
 	}
 
 	@Override
 	protected void onLayout(boolean changed, int l, int t, int r, int b) {
-
 		if (changed && getChildCount() > 0) {
 			final View child = getChildAt(0);
 
@@ -360,15 +317,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 
 			// Center the child SurfaceView within the parent.
 			if (width * previewHeight > height * previewWidth) {
-				final int scaledChildWidth = previewWidth * height
-						/ previewHeight;
-				child.layout((width - scaledChildWidth) / 2, 0,
-						(width + scaledChildWidth) / 2, height);
+				final int scaledChildWidth = previewWidth * height / previewHeight;
+				child.layout((width - scaledChildWidth) / 2, 0, (width + scaledChildWidth) / 2, height);
 			} else {
-				final int scaledChildHeight = previewHeight * width
-						/ previewWidth;
-				child.layout(0, (height - scaledChildHeight) / 2, width,
-						(height + scaledChildHeight) / 2);
+				final int scaledChildHeight = previewHeight * width / previewWidth;
+				child.layout(0, (height - scaledChildHeight) / 2, width, (height + scaledChildHeight) / 2);
 			}
 		}
 	}

@@ -1,5 +1,8 @@
 package com.example.magnificationvideo.mv;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -10,23 +13,23 @@ import android.hardware.Camera;
 import android.hardware.Camera.Face;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.Toast;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class DisplayedFace extends View {
     private Paint paint = new Paint();
     private Context ctx;
-    List<Camera.Face> faces = new ArrayList<Camera.Face>();
-    Matrix matrix = new Matrix();
-    RectF rect = new RectF();
-    RectF rectTransformed;
+    private List<Camera.Face> faces = new ArrayList<Camera.Face>();
+    private Matrix matrix = new Matrix();
+    private RectF rect = new RectF();
+    private RectF rectTransformed;
     private int mDisplayOrientation;
     private int mOrientation;
-    private static final String TAG = "facedetection";
     private int _x, _y;
 
+    public DisplayedFace(Context context, AttributeSet attr) {
+        super(context, attr);
+        this.ctx = context;
+        initialize();
+    }
 
     private void initialize() {
         paint.setColor(Color.WHITE);
@@ -79,14 +82,6 @@ public class DisplayedFace extends View {
         mDisplayOrientation = orientation;
     }
 
-    public DisplayedFace(Context context, AttributeSet attr) {
-        super(context, attr);
-        this.ctx = context;
-        initialize();
-
-
-    }
-
     public void setOrientation(int orientation) {
         mOrientation = orientation;
         invalidate();
@@ -98,9 +93,7 @@ public class DisplayedFace extends View {
         invalidate();
     }
 
-    public static void prepareMatrix(Matrix matrix, int displayOrientation,
-                                     int viewWidth, int viewHeight) {
-
+    public static void prepareMatrix(Matrix matrix, int displayOrientation, int viewWidth, int viewHeight) {
         boolean mirror = (1 == Camera.CameraInfo.CAMERA_FACING_FRONT);
         matrix.setScale(mirror ? -1 : -1, 1);
 
