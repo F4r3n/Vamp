@@ -1,5 +1,8 @@
 package com.example.magnificationvideo.mv;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -10,10 +13,6 @@ import android.hardware.Camera;
 import android.hardware.Camera.Face;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.Toast;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class DisplayedFace extends View {
     private Paint paint = new Paint();
@@ -27,6 +26,11 @@ public class DisplayedFace extends View {
     private static final String TAG = "facedetection";
     private int _x, _y;
 
+    public DisplayedFace(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        ctx = context;
+        initialize();
+    }
 
     private void initialize() {
         paint.setColor(Color.WHITE);
@@ -47,10 +51,7 @@ public class DisplayedFace extends View {
         canvas.drawARGB(0, 0, 0, 0);
 
         if (faces.size() > 0) {
-
             prepareMatrix(matrix, 0, _x, _y);
-
-
             canvas.save();
             matrix.postRotate(mDisplayOrientation);
             int score = 0;
@@ -68,7 +69,6 @@ public class DisplayedFace extends View {
             canvas.restore();
             canvas.drawText("score " + score, 30, 30, paint);
         }
-
     }
 
     public RectF getRect() {
@@ -79,32 +79,19 @@ public class DisplayedFace extends View {
         mDisplayOrientation = orientation;
     }
 
-    public DisplayedFace(Context context, AttributeSet attr) {
-        super(context, attr);
-        this.ctx = context;
-        initialize();
-
-
-    }
-
     public void setOrientation(int orientation) {
         mOrientation = orientation;
         invalidate();
     }
-
 
     public void setFaces(List<Camera.Face> faces) {
         this.faces = faces;
         invalidate();
     }
 
-    public static void prepareMatrix(Matrix matrix, int displayOrientation,
-                                     int viewWidth, int viewHeight) {
-
+    public static void prepareMatrix(Matrix matrix, int displayOrientation, int viewWidth, int viewHeight) {
         boolean mirror = (1 == Camera.CameraInfo.CAMERA_FACING_FRONT);
         matrix.setScale(mirror ? -1 : -1, 1);
-
-
         matrix.postScale(viewWidth / 2000f, viewHeight / 2000f);
         matrix.postTranslate(viewWidth / 2f, viewHeight / 2f);
     }

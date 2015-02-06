@@ -4,11 +4,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import android.graphics.RectF;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.RectF;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
@@ -22,12 +22,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
-		PreviewCallback {
+public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
-	private boolean _finished = false;
+	private boolean _finished = false, _firstTime = true;
 	private Size mPreviewSize;
 	private SurfaceView _surfaceView;
 	private List<Size> _supportedPreviewSizes;
@@ -36,7 +35,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 	private Activity _a;
 	private int _rotationCompensation = 0;
 	private int _width, _height;
-
+	private float[] _averages;
+	
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
 
@@ -52,60 +52,50 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 
 	public void setCamera(Camera camera) {
 		mCamera = camera;
-		new CountDownTimer(3000, 1000) {
-
-			public void onTick(long millisUntilFinished) {
-				// Toast.makeText(_context, "seconds remaining: " +
-				// millisUntilFinished / 1000, Toast.LENGTH_SHORT).show();
-			}
-
-			public void onFinish() {
-				Toast.makeText(_context, "done", Toast.LENGTH_SHORT).show();
-			}
-		}.start();
 		if (mCamera != null) {
-			_supportedPreviewSizes = mCamera.getParameters()
-					.getSupportedPreviewSizes();
+			_supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 			requestLayout();
 			faceDetectionSupported();
-			mCamera.setFaceDetectionListener(new Camera.FaceDetectionListener() {
-				@Override
-				public void onFaceDetection(Camera.Face[] faces, Camera camera) {
-					Log.d("facedetection", "Faces Found: " + faces.length);
-					_df = ((DisplayedFace) (((Activity) getContext())
-							.findViewById(R.id.viewfinder_view)));
-					_df.setFaces(Arrays.asList(faces));
-					int rotation = getDisplayRotation(_a);
-					_df.setRealSize(_width, _height);
-
-					if (_df != null) {
-						if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_UNDEFINED) {
-							return;
-						}
-
-						_df.setRealSize(_width, _height);
-						_rotationCompensation = MagnificationVideo
-								.roundOrientation(rotation);
-						if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-							_df.setDisplayOrientation(0);
-							_df.setRealSize(_height, _width);
-
-						}
-
-						int orientationCompensation = _rotationCompensation
-								+ rotation;
-						if (_rotationCompensation != orientationCompensation) {
-							_rotationCompensation = orientationCompensation;
-							_df.setDisplayOrientation(_rotationCompensation);
-
-						}
-
-					}
-				}
-			});
+			mCamera.setFaceDetectionListener(fdl);
 		}
 	}
 
+	
+	Camera.FaceDetectionListener fdl = new Camera.FaceDetectionListener() {
+		@Override
+		public void onFaceDetection(Camera.Face[] faces, Camera camera) {
+			Log.d("facedetection", "Faces Found: " + faces.length);
+			_df = ((DisplayedFace) (((Activity) getContext())
+					.findViewById(R.id.viewfinder_view)));
+			_df.setFaces(Arrays.asList(faces));
+			int rotation = getDisplayRotation(_a);
+			_df.setRealSize(_width, _height);
+
+			if (_df != null) {
+				if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_UNDEFINED) {
+					return;
+				}
+
+				_df.setRealSize(_width, _height);
+				_rotationCompensation = MagnificationVideo
+						.roundOrientation(rotation);
+				if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+					_df.setDisplayOrientation(0);
+					_df.setRealSize(_height, _width);
+
+				}
+
+				int orientationCompensation = _rotationCompensation
+						+ rotation;
+				if (_rotationCompensation != orientationCompensation) {
+					_rotationCompensation = orientationCompensation;
+					_df.setDisplayOrientation(_rotationCompensation);
+				}
+
+			}
+		}
+	};
+	
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		// Toast.makeText(_context, "callBack", Toast.LENGTH_SHORT).show();
 		if (_finished)
@@ -116,28 +106,52 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		int[] rgb = new int[size];
 
 		decodeYUV420RGB(rgb, data, previewSize.width, previewSize.height);
-		// tabData.add(rgb);
+
 		RectF rect = null;
 		if (_df != null) {
 			 rect = _df.getRect();
-			 Toast.makeText(_context, "Rect", Toast.LENGTH_SHORT).show();
-
 		}
 		if (rect != null) {
-			// Toast.makeText(_context, "test" + Float.toString(rect.centerX()),
-			// Toast.LENGTH_SHORT).show();
+			if(_firstTime == true) {
+				int rsize = (int) (rect.width() * rect.height());
+				_averages = new float[rsize];
+				_firstTime = false;	
+			} 
+			
+			int left = (int)rect.left;
+			int right = (int)rect.right;
+			int top = (int)rect.top;
+			int bottom = (int)rect.bottom;
+			
+			Toast.makeText(_context,"left : "+left+", right : "+right+", top : "+top+" et bottom "+bottom,Toast.LENGTH_LONG).show();
+			
+//			for (int i = top; i < bottom; i++) {
+//				for (int j = left; j < right; j++) {
+//					_averages[i*(int)rect.width()+j] += (Color.red(rgb[i*j]) + Color.green(rgb[i*j]) + Color.blue(rgb[i*j]))/3.f;
+//				}
+//			}
 		}
-		float red = Color.red(rgb[0]);
-		float green = Color.green(rgb[0]);
-		float blue = Color.blue(rgb[0]);
 
+		timer();
 		mCamera.addCallbackBuffer(data);
 	}
+	
+	public void timer() {
+		new CountDownTimer(2500, 1000) {
+
+			public void onTick(long millisUntilFinished) {
+				// Toast.makeText(_context, "seconds remaining: " + millisUntilFinished / 1000, Toast.LENGTH_SHORT).show();
+			}
+
+			public void onFinish() {
+				Toast.makeText(_context, "Done.", Toast.LENGTH_SHORT).show();
+			}
+		}.start();
+	}
+
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-		// The Surface has been created, acquire the camera and tell it where to
-		// draw.
 		try {
 			if (mCamera != null) {
 				mCamera.setPreviewDisplay(holder);
