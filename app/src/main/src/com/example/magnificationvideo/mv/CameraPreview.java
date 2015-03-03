@@ -24,7 +24,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
+public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
+		PreviewCallback {
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
@@ -38,7 +39,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private int _rotationCompensation = 0;
 	private int _width, _height;
 	private LinkedList<Integer> _averages = new LinkedList<Integer>();
-	
+	private boolean isCounting = false;
+
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
 
@@ -55,14 +57,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	public void setCamera(Camera camera) {
 		mCamera = camera;
 		if (mCamera != null) {
-			_supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+			_supportedPreviewSizes = mCamera.getParameters()
+					.getSupportedPreviewSizes();
 			requestLayout();
 			faceDetectionSupported();
 			mCamera.setFaceDetectionListener(fdl);
 		}
 	}
 
-	
 	Camera.FaceDetectionListener fdl = new Camera.FaceDetectionListener() {
 		@Override
 		public void onFaceDetection(Camera.Face[] faces, Camera camera) {
@@ -70,35 +72,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			_df = ((DisplayedFace) (((Activity) getContext())
 					.findViewById(R.id.viewfinder_view)));
 			_df.setFaces(Arrays.asList(faces));
-			int rotation = getDisplayRotation(_a);
-			_df.setRealSize(_width, _height);
 
-			if (_df != null) {
-				if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_UNDEFINED) {
-					return;
-				}
-
-				_df.setRealSize(_width, _height);
-				_rotationCompensation = MagnificationVideo.roundOrientation(rotation);
-				if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-					_df.setDisplayOrientation(0);
-					_df.setRealSize(_height, _width);
-
-				}
-
-				int orientationCompensation = _rotationCompensation + rotation;
-				if (_rotationCompensation != orientationCompensation) {
-					_rotationCompensation = orientationCompensation;
-					_df.setDisplayOrientation(_rotationCompensation);
-				}
-
-			}
 		}
+
 	};
-	
+
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		if (_finished) {
-			return;	
+			return;
 		}
 		Size previewSize = camera.getParameters().getPreviewSize();
 
@@ -109,78 +90,71 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
 		RectF rect = null;
 		if (_df != null) {
-			 rect = _df.getRect();
+			rect = _df.getRect();
 		}
-		if (rect != null) {	
-			Matrix m = new Matrix();
-			m.setRotate(180, 0, 0);
-			m.mapRect(rect);
-			
-			int left = Math.abs((int)rect.left);
-			int right = Math.abs((int)rect.right);
-			int top = Math.abs((int)rect.top);
-			int bottom = Math.abs((int)rect.bottom);
-			
+		if (rect != null) {
+
+			int left = Math.abs((int) rect.left);
+			int right = Math.abs((int) rect.right);
+			int top = Math.abs((int) rect.top);
+			int bottom = Math.abs((int) rect.bottom);
+
 			// On lance dès qu'on obtient un rect valide
-			if(left != 0) {
+			if (left != 0 && isCounting == false) {
 				timer();
+				isCounting = true;
 			}
-						
-//			if(left != 0) {
-//				Toast.makeText(_context,"After => l: "+left+", r: "+right+", t: "+top+" et b: "+bottom,Toast.LENGTH_SHORT).show();
-//			}
-			
+
 			// On calcule tant que le timer est encore en cours
-			if(!_endOfTimer) {
+			if (!_endOfTimer) {
 				int avg = 0;
 				int k = 0, l = 0, rsize = 0;
 				for (int i = top; i < bottom; i++) {
 					for (int j = left; j < right; j++) {
-						avg += (int)Color.green(rgb[(k*(int)rect.width()+i)+(j+l)]);			
-						l = l+1;
+						avg += (int) Color
+								.green(rgb[(k * (int) rect.width() + i)
+										+ (j + l)]);
+						l = l + 1;
 						rsize = rsize + 1;
 					}
-					k = k +1;
+					k = k + 1;
 					l = 0;
 				}
-				// Au début, on a des valeurs nulles donc on vérifie qu'on parcours bien qqch
-				if(rsize != 0) {
-					Integer iInt = Integer.valueOf(avg/rsize);
-					_averages.add(iInt);		
+				// Au début, on a des valeurs nulles donc on vérifie qu'on
+				// parcours bien qqch
+				if (rsize != 0) {
+					Integer iInt = Integer.valueOf(avg / rsize);
+					_averages.add(iInt);
 				}
 			}
 		}
-		
+
 		mCamera.addCallbackBuffer(data);
 	}
-	
+
 	public void timer() {
 		new CountDownTimer(4500, 1000) {
 
 			public void onTick(long millisUntilFinished) {
-				// Toast.makeText(_context, "seconds remaining: " + millisUntilFinished / 1000, Toast.LENGTH_SHORT).show();
 			}
 
 			public void onFinish() {
-				_endOfTimer	= true;
-				Toast.makeText(_context,"Ok, list size : "+_averages.size(),Toast.LENGTH_SHORT).show();
-				for (int i=0; i< _averages.size(); i++) {
-					System.out.println((Integer)_averages.get(i));
-				}
+				_endOfTimer = true;
+				// System.err.println((Integer)_averages.size());
+
 			}
 		}.start();
 	}
-
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		try {
 			if (mCamera != null) {
 				mCamera.setPreviewDisplay(holder);
-
 				Camera.Parameters parameters = mCamera.getParameters();
-				// changeOrientation();
+				parameters.setRotation(90);
 				mCamera.setParameters(parameters);
+				mCamera.setFaceDetectionListener(fdl);
 			}
 		} catch (IOException exception) {
 			Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
@@ -319,51 +293,28 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 		final int width = resolveSize(getSuggestedMinimumWidth(),
 				widthMeasureSpec);
 		final int height = resolveSize(getSuggestedMinimumHeight(),
 				heightMeasureSpec);
-		_width = width;
-		_height = height;
-		// Log.d("Size", "s" + _width +" " +_height);
+		setMeasuredDimension(width, height);
 
-		// setMeasuredDimension(width, height);
-
-		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-
-			mCamera.setDisplayOrientation(90);
-			setMeasuredDimension(height, width);
-
-			return;
-
-		} else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-			int rotation = getDisplayRotation(_a);
-			switch (rotation) {
-			case 90:
-				mCamera.setDisplayOrientation(0);
-				break;
-			case 270:
-				mCamera.setDisplayOrientation(180);
-				break;
-			default:
-				break;
-			}
-			setMeasuredDimension(width, height);
-
+		if (_supportedPreviewSizes != null) {
+			mPreviewSize = getOptimalPreviewSize(_supportedPreviewSizes, width,
+					height);
 		}
-
-		/*
-		 * float ratio; if(mPreviewSize.height >= mPreviewSize.width) ratio =
-		 * (float) mPreviewSize.height / (float) mPreviewSize.width; else ratio
-		 * = (float) mPreviewSize.width / (float) mPreviewSize.height;
-		 * 
-		 * // One of these methods should be used, second method squishes
-		 * preview slightly
-		 * 
-		 * Camera.Parameters parameters = mCamera.getParameters(); }
-		 */
 	}
+
+	/*
+	 * float ratio; if(mPreviewSize.height >= mPreviewSize.width) ratio =
+	 * (float) mPreviewSize.height / (float) mPreviewSize.width; else ratio =
+	 * (float) mPreviewSize.width / (float) mPreviewSize.height;
+	 * 
+	 * // One of these methods should be used, second method squishes preview
+	 * slightly
+	 * 
+	 * Camera.Parameters parameters = mCamera.getParameters(); }
+	 */
 
 	private void faceDetectionSupported() {
 
@@ -372,9 +323,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
 			Log.e(TAG, "Face Detection not supported");
 		} else {
-			Toast toast = Toast.makeText(_context, "Face detected supported",
-					Toast.LENGTH_SHORT);
-			toast.show();
+			// Toast toast = Toast.makeText(_context, "Face detected supported",
+			// Toast.LENGTH_SHORT);
+			// toast.show();
 		}
 	}
 

@@ -49,9 +49,11 @@ public class DisplayedFace extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.drawARGB(0, 0, 0, 0);
+    	System.err.println("FaceDraw");
+
 
         if (faces.size() > 0) {
-            prepareMatrix(matrix, 0, _x, _y);
+            prepareMatrix(matrix, 0, getWidth(), getHeight());
             canvas.save();
             matrix.postRotate(mDisplayOrientation);
             int score = 0;
@@ -60,7 +62,11 @@ public class DisplayedFace extends View {
 
             for (Face face : faces) {
                 rect.set(face.rect);
+            	System.err.println("A "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
+
                 matrix.mapRect(rect);
+            	System.err.println("B "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
+
                 rectTransformed.set(rect);
                 canvas.drawRect(rect, paint);
                 score = face.score;
