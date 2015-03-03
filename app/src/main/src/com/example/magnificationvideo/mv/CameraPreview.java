@@ -2,12 +2,14 @@ package com.example.magnificationvideo.mv;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
@@ -26,7 +28,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
-	private boolean _finished = false, _firstTime = true;
+	private boolean _finished = false, _endOfTimer = false;
 	private Size mPreviewSize;
 	private SurfaceView _surfaceView;
 	private List<Size> _supportedPreviewSizes;
@@ -35,7 +37,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private Activity _a;
 	private int _rotationCompensation = 0;
 	private int _width, _height;
-	private float[] _averages;
+	private LinkedList<Integer> _averages = new LinkedList<Integer>();
 	
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
@@ -77,16 +79,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 				}
 
 				_df.setRealSize(_width, _height);
-				_rotationCompensation = MagnificationVideo
-						.roundOrientation(rotation);
+				_rotationCompensation = MagnificationVideo.roundOrientation(rotation);
 				if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
 					_df.setDisplayOrientation(0);
 					_df.setRealSize(_height, _width);
 
 				}
 
-				int orientationCompensation = _rotationCompensation
-						+ rotation;
+				int orientationCompensation = _rotationCompensation + rotation;
 				if (_rotationCompensation != orientationCompensation) {
 					_rotationCompensation = orientationCompensation;
 					_df.setDisplayOrientation(_rotationCompensation);
@@ -97,9 +97,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	};
 	
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		// Toast.makeText(_context, "callBack", Toast.LENGTH_SHORT).show();
-		if (_finished)
-			return;
+		if (_finished) {
+			return;	
+		}
 		Size previewSize = camera.getParameters().getPreviewSize();
 
 		int size = previewSize.width * previewSize.height;
@@ -111,40 +111,62 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		if (_df != null) {
 			 rect = _df.getRect();
 		}
-		if (rect != null) {
-			if(_firstTime == true) {
-				int rsize = (int) (rect.width() * rect.height());
-				_averages = new float[rsize];
-				_firstTime = false;	
-			} 
+		if (rect != null) {	
+			Matrix m = new Matrix();
+			m.setRotate(180, 0, 0);
+			m.mapRect(rect);
 			
-			int left = (int)rect.left;
-			int right = (int)rect.right;
-			int top = (int)rect.top;
-			int bottom = (int)rect.bottom;
+			int left = Math.abs((int)rect.left);
+			int right = Math.abs((int)rect.right);
+			int top = Math.abs((int)rect.top);
+			int bottom = Math.abs((int)rect.bottom);
 			
-			Toast.makeText(_context,"left : "+left+", right : "+right+", top : "+top+" et bottom "+bottom,Toast.LENGTH_LONG).show();
-			
-//			for (int i = top; i < bottom; i++) {
-//				for (int j = left; j < right; j++) {
-//					_averages[i*(int)rect.width()+j] += (Color.red(rgb[i*j]) + Color.green(rgb[i*j]) + Color.blue(rgb[i*j]))/3.f;
-//				}
+			// On lance dès qu'on obtient un rect valide
+			if(left != 0) {
+				timer();
+			}
+						
+//			if(left != 0) {
+//				Toast.makeText(_context,"After => l: "+left+", r: "+right+", t: "+top+" et b: "+bottom,Toast.LENGTH_SHORT).show();
 //			}
+			
+			// On calcule tant que le timer est encore en cours
+			if(!_endOfTimer) {
+				int avg = 0;
+				int k = 0, l = 0, rsize = 0;
+				for (int i = top; i < bottom; i++) {
+					for (int j = left; j < right; j++) {
+						avg += (int)Color.green(rgb[(k*(int)rect.width()+i)+(j+l)]);			
+						l = l+1;
+						rsize = rsize + 1;
+					}
+					k = k +1;
+					l = 0;
+				}
+				// Au début, on a des valeurs nulles donc on vérifie qu'on parcours bien qqch
+				if(rsize != 0) {
+					Integer iInt = Integer.valueOf(avg/rsize);
+					_averages.add(iInt);		
+				}
+			}
 		}
-
-		timer();
+		
 		mCamera.addCallbackBuffer(data);
 	}
 	
 	public void timer() {
-		new CountDownTimer(2500, 1000) {
+		new CountDownTimer(4500, 1000) {
 
 			public void onTick(long millisUntilFinished) {
 				// Toast.makeText(_context, "seconds remaining: " + millisUntilFinished / 1000, Toast.LENGTH_SHORT).show();
 			}
 
 			public void onFinish() {
-				Toast.makeText(_context, "Done.", Toast.LENGTH_SHORT).show();
+				_endOfTimer	= true;
+				Toast.makeText(_context,"Ok, list size : "+_averages.size(),Toast.LENGTH_SHORT).show();
+				for (int i=0; i< _averages.size(); i++) {
+					System.out.println((Integer)_averages.get(i));
+				}
 			}
 		}.start();
 	}
