@@ -28,7 +28,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
-	private boolean _finished = false, _endOfTimer = false;
+	private boolean _finished = false, _endOfTimer = false, launchedTimer = false;
 	private Size mPreviewSize;
 	private SurfaceView _surfaceView;
 	private List<Size> _supportedPreviewSizes;
@@ -38,6 +38,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private int _rotationCompensation = 0;
 	private int _width, _height;
 	private LinkedList<Integer> _averages = new LinkedList<Integer>();
+	private int cptValidRect = 0, cptIndex = 0;
 	
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
@@ -121,17 +122,30 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			int top = Math.abs((int)rect.top);
 			int bottom = Math.abs((int)rect.bottom);
 			
+			if(left > right) {
+				int temp = right;
+				right = left;
+				left = temp;
+			}
+			if(top > bottom) {
+				int temp = bottom;
+				bottom = top;
+				top = temp;
+			}
+			
 			// On lance dès qu'on obtient un rect valide
 			if(left != 0) {
-				timer();
+				if(!launchedTimer) {
+					timer();	
+					launchedTimer = true;
+				}
 			}
-						
-//			if(left != 0) {
-//				Toast.makeText(_context,"After => l: "+left+", r: "+right+", t: "+top+" et b: "+bottom,Toast.LENGTH_SHORT).show();
-//			}
 			
 			// On calcule tant que le timer est encore en cours
 			if(!_endOfTimer) {
+				cptValidRect++;
+				System.out.println("cptValidRect : "+cptValidRect);
+				
 				int avg = 0;
 				int k = 0, l = 0, rsize = 0;
 				for (int i = top; i < bottom; i++) {
@@ -143,10 +157,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 					k = k +1;
 					l = 0;
 				}
+				
+				System.out.println("l: "+left+", r: "+right+", t: "+top+" et b: "+bottom+"  --- rsize"+rsize);
+				
 				// Au début, on a des valeurs nulles donc on vérifie qu'on parcours bien qqch
 				if(rsize != 0) {
 					Integer iInt = Integer.valueOf(avg/rsize);
-					_averages.add(iInt);		
+					_averages.add(iInt);
+					cptIndex++;
 				}
 			}
 		}
@@ -155,7 +173,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	}
 	
 	public void timer() {
-		new CountDownTimer(4500, 1000) {
+		new CountDownTimer(5000, 1000) {
 
 			public void onTick(long millisUntilFinished) {
 				// Toast.makeText(_context, "seconds remaining: " + millisUntilFinished / 1000, Toast.LENGTH_SHORT).show();
@@ -164,14 +182,33 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			public void onFinish() {
 				_endOfTimer	= true;
 				Toast.makeText(_context,"Ok, list size : "+_averages.size(),Toast.LENGTH_SHORT).show();
+				derive(_averages);
+				amplification(_averages, 3);
+				
 				for (int i=0; i< _averages.size(); i++) {
-					System.out.println((Integer)_averages.get(i));
+					System.out.print((Integer)_averages.get(i)+" ");
 				}
+				System.out.println();
 			}
 		}.start();
 	}
 
-
+	public void derive(LinkedList<Integer> avgs) {
+		for (int i = 1; i < avgs.size(); i++) {
+			avgs.set(i,(avgs.get(i) - avgs.get(i-1)));
+		}
+	}
+	
+	public void amplification(LinkedList<Integer> avgs, int factor) {
+		int[] tab = new int[avgs.size()];
+		for (int i = 0; i < avgs.size(); i++) {
+			tab[i] = avgs.get(i)*factor;
+		}
+		for (int i = 0; i < avgs.size(); i++) {
+			avgs.set(i, avgs.get(i) + tab[i]);
+		}		
+	}
+	
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		try {
