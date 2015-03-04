@@ -62,10 +62,10 @@ public class DisplayedFace extends View {
 
             for (Face face : faces) {
                 rect.set(face.rect);
-            	System.err.println("A "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
+            //	System.err.println("A "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
 
                 matrix.mapRect(rect);
-            	System.err.println("B "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
+           // 	System.err.println("B "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
 
                 rectTransformed.set(rect);
                 canvas.drawRect(rect, paint);

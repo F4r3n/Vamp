@@ -87,12 +87,13 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		int[] rgb = new int[size];
 
 		decodeYUV420RGB(rgb, data, previewSize.width, previewSize.height);
-
+		System.err.println("df");
 		RectF rect = null;
 		if (_df != null) {
 			rect = _df.getRect();
 		}
 		if (rect != null) {
+	          	System.err.println("B "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
 
 			int left = Math.abs((int) rect.left);
 			int right = Math.abs((int) rect.right);
@@ -114,7 +115,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 			// On calcule tant que le timer est encore en cours
 			if(!_endOfTimer) {
 				cptValidRect++;
-				System.out.println("cptValidRect : "+cptValidRect);
+				System.err.println("cptValidRect : "+cptValidRect);
 				
 				int avg = 0;
 				int k = 0, l = 0, rsize = 0;
@@ -153,13 +154,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 			public void onFinish() {
 				_endOfTimer	= true;
 				Toast.makeText(_context,"Ok, list size : "+_averages.size(),Toast.LENGTH_SHORT).show();
+				System.err.println("La taille est de "+_averages.size());
 				derive(_averages);
 				amplification(_averages, 3);
 				
-				for (int i=0; i< _averages.size(); i++) {
-					System.out.print((Integer)_averages.get(i)+" ");
-				}
-				System.out.println();
+			
 			}
 		}.start();
 	}
@@ -180,7 +179,6 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		}		
 	}
 	
->>>>>>> eaf8d48510d53fef80cb7a0fbcc556dc39115855
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		try {
