@@ -7,9 +7,8 @@ import java.util.List;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Configuration;
+import android.graphics.AvoidXfermode;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
@@ -24,8 +23,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
-		PreviewCallback {
+public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
@@ -40,6 +38,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 	private int _width, _height;
 	private LinkedList<Integer> _averages = new LinkedList<Integer>();
 	private int cptValidRect = 0, cptIndex = 0;
+	private int PMIN = 5, PMAX = 200, FRAME = 15;
 	
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
@@ -57,8 +56,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 	public void setCamera(Camera camera) {
 		mCamera = camera;
 		if (mCamera != null) {
-			_supportedPreviewSizes = mCamera.getParameters()
-					.getSupportedPreviewSizes();
+			_supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 			requestLayout();
 			faceDetectionSupported();
 			mCamera.setFaceDetectionListener(fdl);
@@ -93,18 +91,13 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 			rect = _df.getRect();
 		}
 		if (rect != null) {
-	          	System.err.println("B "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
+          	System.err.println("B "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
 
 			int left = Math.abs((int) rect.left);
 			int right = Math.abs((int) rect.right);
 			int top = Math.abs((int) rect.top);
 			int bottom = Math.abs((int) rect.bottom);
 
-			// On lance dès qu'on obtient un rect valide
-
-			// On calcule tant que le timer est encore en cours
-			
-			// On lance dès qu'on obtient un rect valide
 			if(left != 0) {
 				if(!launchedTimer) {
 					timer();	
@@ -112,7 +105,6 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 				}
 			}
 			
-			// On calcule tant que le timer est encore en cours
 			if(!_endOfTimer) {
 				cptValidRect++;
 				System.err.println("cptValidRect : "+cptValidRect);
@@ -121,19 +113,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 				int k = 0, l = 0, rsize = 0;
 				for (int i = top; i < bottom; i++) {
 					for (int j = left; j < right; j++) {
-						avg += (int) Color
-								.green(rgb[(k * (int) rect.width() + i)
-										+ (j + l)]);
+						avg += (int) Color.green(rgb[(k * (int) rect.width() + i) + (j + l)]);
 						l = l + 1;
 						rsize = rsize + 1;
 					}
 					k = k + 1;
 					l = 0;
 				}
-				// Au début, on a des valeurs nulles donc on vérifie qu'on
-				// parcours bien qqch
 				
-				// Au début, on a des valeurs nulles donc on vérifie qu'on parcours bien qqch
 				if(rsize != 0) {
 					Integer iInt = Integer.valueOf(avg/rsize);
 					_averages.add(iInt);
@@ -158,7 +145,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 				derive(_averages);
 				amplification(_averages, 3);
 				
-			
+				double v = variations(_averages).size()/2.f;
+				System.out.println("Nb var. "+(v / (_averages.size()/15))*60+" "+((v+1)/(_averages.size()/15))*60);
+				for (int i = 0; i < _averages.size(); i++) {
+					System.out.println(" "+_averages.get(i));
+				}
 			}
 		}.start();
 	}
@@ -179,6 +170,53 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		}		
 	}
 	
+	public LinkedList<Integer> variations(LinkedList<Integer> avgs) {
+		LinkedList<Integer> _v = new LinkedList<Integer>();
+	    boolean up = false;
+	    boolean down = false;
+	    double max = maxValue(avgs);
+	    
+	    if(max < 0.01) {
+	    	return null;	    	
+	    }
+
+	    int i=0;
+	    int j=0;
+	    
+	    for(double y : avgs) {
+	        if(y<0 && up == true) {
+	            i++;
+	            _v.add(j);
+	        }
+	        if(y>0 && down == true) {
+	            i++;
+	            _v.add(j);
+
+	        }
+	        if(y<0) {
+	            down =true;
+	            up = false;
+	        }
+	        if(y>0) {
+	            up =true;
+	            down = false;
+	        }
+
+	        j++;
+	    }
+	    return _v;
+	}
+	
+	
+	public double maxValue(LinkedList<Integer> avgs) {
+	    double max =0;
+	    for(double i : avgs) {
+	        if(i>max) max=i;
+	    }
+	    return max;
+	}
+	
+	
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		try {
@@ -193,24 +231,6 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 			Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
 		}
 	}
-
-	// public void changeOrientation() {
-	// Camera.Parameters parameters = mCamera.getParameters();
-	// System.out.println("test");
-	//
-	// if (getResources().getConfiguration().orientation ==
-	// Configuration.ORIENTATION_PORTRAIT){
-	// parameters.set("orientation", "portrait");
-	// parameters.set("rotation",90);
-	// mCamera.setDisplayOrientation(90);
-	//
-	// } else if (getResources().getConfiguration().orientation ==
-	// Configuration.ORIENTATION_LANDSCAPE){
-	// parameters.set("orientation", "landscape");
-	// parameters.set("rotation", 90);
-	// mCamera.setDisplayOrientation(90);
-	// }
-	// }
 
 	public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
 		requestLayout();
