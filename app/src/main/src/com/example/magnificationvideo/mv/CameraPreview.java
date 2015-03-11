@@ -7,7 +7,6 @@ import java.util.List;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.AvoidXfermode;
 import android.graphics.Color;
 import android.graphics.RectF;
 import android.hardware.Camera;
@@ -36,7 +35,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private Activity _a;
 	private int _rotationCompensation = 0;
 	private int _width, _height;
-	private LinkedList<Integer> _averages = new LinkedList<Integer>();
+	private LinkedList<Double> _averages = new LinkedList<Double>();
 	private int cptValidRect = 0, cptIndex = 0;
 	private int PMIN = 5, PMAX = 200, FRAME = 15;
 	
@@ -67,8 +66,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		@Override
 		public void onFaceDetection(Camera.Face[] faces, Camera camera) {
 			Log.d("facedetection", "Faces Found: " + faces.length);
-			_df = ((DisplayedFace) (((Activity) getContext())
-					.findViewById(R.id.viewfinder_view)));
+			_df = ((DisplayedFace) (((Activity) getContext()).findViewById(R.id.viewfinder_view)));
 			_df.setFaces(Arrays.asList(faces));
 
 		}
@@ -85,14 +83,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		int[] rgb = new int[size];
 
 		decodeYUV420RGB(rgb, data, previewSize.width, previewSize.height);
-		System.err.println("df");
 		RectF rect = null;
 		if (_df != null) {
 			rect = _df.getRect();
 		}
 		if (rect != null) {
-          	System.err.println("B "+ rect.left+ " " + rect.top+ " " + rect.right + " "+ rect.bottom);
-
 			int left = Math.abs((int) rect.left);
 			int right = Math.abs((int) rect.right);
 			int top = Math.abs((int) rect.top);
@@ -107,8 +102,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			
 			if(!_endOfTimer) {
 				cptValidRect++;
-				System.err.println("cptValidRect : "+cptValidRect);
-				
+
 				int avg = 0;
 				int k = 0, l = 0, rsize = 0;
 				for (int i = top; i < bottom; i++) {
@@ -122,8 +116,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 				}
 				
 				if(rsize != 0) {
-					Integer iInt = Integer.valueOf(avg/rsize);
-					_averages.add(iInt);
+					Double dAvg = Double.valueOf(avg/rsize);
+					_averages.add(dAvg);
 					cptIndex++;
 				}
 			}
@@ -141,27 +135,46 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			public void onFinish() {
 				_endOfTimer	= true;
 				Toast.makeText(_context,"Ok, list size : "+_averages.size(),Toast.LENGTH_SHORT).show();
+				
 				System.err.println("La taille est de "+_averages.size());
 				derive(_averages);
-				amplification(_averages, 3);
-				
-				double v = variations(_averages).size()/2.f;
-				System.out.println("Nb var. "+(v / (_averages.size()/15))*60+" "+((v+1)/(_averages.size()/15))*60);
+				System.err.print("Derive list : ");
 				for (int i = 0; i < _averages.size(); i++) {
-					System.out.println(" "+_averages.get(i));
+					System.err.print(" "+_averages.get(i));
 				}
+				System.err.println(".");
+				
+				amplification(_averages, 3);
+				System.err.print("Amplification list : ");
+				for (int i = 0; i < _averages.size(); i++) {
+					System.err.print(" "+_averages.get(i));
+				}
+				System.err.println(".");
+				
+				LinkedList<Integer> list = variations(_averages);
+				System.err.print("Variations list : ");
+				for (int i = 0; i < list.size(); i++) {
+					System.err.print(" "+list.get(i));
+				}
+				System.err.println(".");
+				
+				
+				double v = list.size()/2.f;
+				System.err.println("Variations : "+list.size()+" -- divided : "+(list.size()/2.f));
+				System.err.println("V : "+_averages.size());				
+				System.err.println("Nb var. "+(v / (_averages.size()/15))*60+" "+( (v+1) /(_averages.size()/15) )*60);
 			}
 		}.start();
 	}
 
-	public void derive(LinkedList<Integer> avgs) {
+	public void derive(LinkedList<Double> avgs) {
 		for (int i = 1; i < avgs.size(); i++) {
 			avgs.set(i,(avgs.get(i) - avgs.get(i-1)));
 		}
 	}
 	
-	public void amplification(LinkedList<Integer> avgs, int factor) {
-		int[] tab = new int[avgs.size()];
+	public void amplification(LinkedList<Double> avgs, int factor) {
+		Double[] tab = new Double[avgs.size()];
 		for (int i = 0; i < avgs.size(); i++) {
 			tab[i] = avgs.get(i)*factor;
 		}
@@ -170,11 +183,13 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		}		
 	}
 	
-	public LinkedList<Integer> variations(LinkedList<Integer> avgs) {
+	public LinkedList<Integer> variations(LinkedList<Double> avgs) {
 		LinkedList<Integer> _v = new LinkedList<Integer>();
 	    boolean up = false;
 	    boolean down = false;
 	    double max = maxValue(avgs);
+	    
+	    System.err.println("Max value : "+max);
 	    
 	    if(max < 0.01) {
 	    	return null;	    	
@@ -183,22 +198,25 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	    int i=0;
 	    int j=0;
 	    
-	    for(double y : avgs) {
+	    for(Double y : avgs) {
 	        if(y<0 && up == true) {
+		    	System.err.println("Added up : "+y);
 	            i++;
 	            _v.add(j);
 	        }
 	        if(y>0 && down == true) {
+		    	System.err.println("Added down : "+y);
 	            i++;
 	            _v.add(j);
-
 	        }
 	        if(y<0) {
-	            down =true;
+		    	System.err.println("Down = true, "+y);
+	            down = true;
 	            up = false;
 	        }
 	        if(y>0) {
-	            up =true;
+		    	System.err.println("Up = true, "+y);
+	            up = true;
 	            down = false;
 	        }
 
@@ -208,7 +226,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	}
 	
 	
-	public double maxValue(LinkedList<Integer> avgs) {
+	public double maxValue(LinkedList<Double> avgs) {
 	    double max =0;
 	    for(double i : avgs) {
 	        if(i>max) max=i;
