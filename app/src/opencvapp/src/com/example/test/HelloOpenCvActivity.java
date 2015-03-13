@@ -25,6 +25,8 @@ import org.opencv.objdetect.CascadeClassifier;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.AvoidXfermode;
+import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
@@ -52,14 +54,14 @@ public class HelloOpenCvActivity extends Activity implements
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		if(hasTouched == false) {
-		images.clear();
-		upTab.clear();
-		downTab.clear();
-		_averages.clear();
-		timer();
-		hasTouched = true;
-		System.err.println("Début !!!!!!!!!!!!!!");
+		if (hasTouched == false) {
+			images.clear();
+			upTab.clear();
+			downTab.clear();
+			_averages.clear();
+			timer();
+			hasTouched = true;
+			System.err.println("Début !!!!!!!!!!!!!!");
 		}
 		return super.onTouchEvent(event);
 	}
@@ -72,7 +74,7 @@ public class HelloOpenCvActivity extends Activity implements
 		setContentView(R.layout.helloopencvlayout);
 		mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
 		mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-		// mOpenCvCameraView.setCameraIndex(1); Front camera
+		 mOpenCvCameraView.setCameraIndex(getCameraInstance());
 		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
@@ -112,6 +114,19 @@ public class HelloOpenCvActivity extends Activity implements
 				hasTouched = false;
 			}
 		}.start();
+	}
+
+	public static int getCameraInstance() {
+		int c = 0;
+		try {
+			int nbCameras = Camera.getNumberOfCameras();
+			if (nbCameras > 1) {
+				c = 1;
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return c;
 	}
 
 	@Override
@@ -160,19 +175,19 @@ public class HelloOpenCvActivity extends Activity implements
 
 		}
 
-		if(isAnalyzing==false) {
-		if (facesArray.length != 0) {
-			running = true;
-			up = facesArray[0].tl();
-			down = facesArray[0].br();
-		}
+		if (isAnalyzing == false) {
+			if (facesArray.length != 0) {
+				running = true;
+				up = facesArray[0].tl();
+				down = facesArray[0].br();
+			}
 
-		if (running) {
-			images.add(aInputFrame.rgba());
-			upTab.add(up);
-			downTab.add(down);
+			if (running) {
+				images.add(aInputFrame.rgba());
+				upTab.add(up);
+				downTab.add(down);
 
-		}
+			}
 		}
 
 		// Core.rectangle(aInputFrame.rgba(),new Point(10,10),new
