@@ -27,13 +27,12 @@ import android.content.Context;
 import android.graphics.AvoidXfermode;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 public class HelloOpenCvActivity extends Activity implements
 		CvCameraViewListener2 {
@@ -48,8 +47,22 @@ public class HelloOpenCvActivity extends Activity implements
 	private LinkedList<Mat> images = new LinkedList<Mat>();
 	private LinkedList<Point> upTab = new LinkedList<Point>();
 	private LinkedList<Point> downTab = new LinkedList<Point>();
+	private boolean isAnalyzing = false;
+	private boolean hasTouched = false;
 
-	private boolean beginTimer = false;
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		if(hasTouched == false) {
+		images.clear();
+		upTab.clear();
+		downTab.clear();
+		_averages.clear();
+		timer();
+		hasTouched = true;
+		System.err.println("Début !!!!!!!!!!!!!!");
+		}
+		return super.onTouchEvent(event);
+	}
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -63,6 +76,26 @@ public class HelloOpenCvActivity extends Activity implements
 		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
+	public void analyse() {
+		int index = 0;
+		for (Mat image : images) {
+			Point a = upTab.get(index);
+			Point b = downTab.get(index);
+			double green = 0;
+			int size = 0;
+			for (int k = (int) a.y; k < b.y; k++) {
+				for (int l = (int) a.x; l < b.x; l++) {
+
+					double[] t = image.get(k, l);
+					green += t[1];
+					size++;
+				}
+			}
+			_averages.add(green / size);
+			index++;
+		}
+	}
+
 	public void timer() {
 		new CountDownTimer(5000, 1000) {
 
@@ -70,9 +103,13 @@ public class HelloOpenCvActivity extends Activity implements
 			}
 
 			public void onFinish() {
+				isAnalyzing = true;
+				analyse();
 				System.err.println("OVER");
 				derive(_averages);
+				System.err.println(_averages.size());
 				System.err.println(variations(_averages));
+				hasTouched = false;
 			}
 		}.start();
 	}
@@ -122,30 +159,22 @@ public class HelloOpenCvActivity extends Activity implements
 			System.err.println("yop");
 
 		}
-		// if(beginTimer==false && facesArray.length!=0) timer();
 
+		if(isAnalyzing==false) {
 		if (facesArray.length != 0) {
 			running = true;
-			beginTimer = true;
 			up = facesArray[0].tl();
 			down = facesArray[0].br();
 		}
-		double green = 0;
-		int cpt = 0;
+
 		if (running) {
 			images.add(aInputFrame.rgba());
 			upTab.add(up);
 			downTab.add(down);
-			/*
-			 * for (int k = (int) up.y; k < down.y; k++) { for (int l =
-			 * (int) up.x; l < down.x; l++) {
-			 * 
-			 * double []t = aInputFrame.rgba().get(k,l); green += t[1];
-			 * cpt++; } } _averages.add(green / cpt);
-			 */
 
 		}
-		
+		}
+
 		// Core.rectangle(aInputFrame.rgba(),new Point(10,10),new
 		// Point(30,30),new Scalar(0,0,255));
 
