@@ -51,6 +51,7 @@ public class HelloOpenCvActivity extends Activity implements
 	private LinkedList<Point> downTab = new LinkedList<Point>();
 	private boolean isAnalyzing = false;
 	private boolean hasTouched = false;
+	private static boolean frontCamera = false;
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
@@ -74,7 +75,7 @@ public class HelloOpenCvActivity extends Activity implements
 		setContentView(R.layout.helloopencvlayout);
 		mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
 		mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-		 mOpenCvCameraView.setCameraIndex(getCameraInstance());
+		mOpenCvCameraView.setCameraIndex(getCameraInstance());
 		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
@@ -122,6 +123,7 @@ public class HelloOpenCvActivity extends Activity implements
 			int nbCameras = Camera.getNumberOfCameras();
 			if (nbCameras > 1) {
 				c = 1;
+				frontCamera = true;
 			}
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
@@ -153,6 +155,12 @@ public class HelloOpenCvActivity extends Activity implements
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame aInputFrame) {
+		if (frontCamera) {
+			Mat mRgba = aInputFrame.rgba();
+			Mat mRgbaT = mRgba.t();
+			Core.flip(mRgba.t(), mRgbaT, 1);
+			Imgproc.resize(mRgbaT, mRgbaT, mRgba.size());
+		}
 		Imgproc.cvtColor(aInputFrame.rgba(), grayscaleImage,
 				Imgproc.COLOR_RGBA2RGB);
 
@@ -233,9 +241,12 @@ public class HelloOpenCvActivity extends Activity implements
 	}
 
 	public void derive(LinkedList<Double> avgs) {
-		for (int i = 1; i < avgs.size(); i++) {
-			avgs.set(i, (avgs.get(i) - avgs.get(i - 1)));
+		double tmp = 0;
+		for (int i = 1; i < avgs.size() - 1; i++) {
+			tmp = avgs.get(i + 1);
+			avgs.set(i, (avgs.get(i) - tmp));
 		}
+		avgs.set(0, 0.0);
 	}
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {

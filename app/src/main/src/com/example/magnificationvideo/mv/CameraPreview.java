@@ -15,6 +15,7 @@ import android.hardware.Camera.Size;
 import android.os.CountDownTimer;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -22,12 +23,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
+public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
+		PreviewCallback {
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
-	private boolean _finished = false, _endOfTimer = false, launchedTimer = false;
-	private Size mPreviewSize;
+	private boolean _finished = false, _endOfTimer = false, hasTouched = false, launchedTimer = false;
+	private Size mPreviewSize, _previewSize;
 	private SurfaceView _surfaceView;
 	private List<Size> _supportedPreviewSizes;
 	private Context _context;
@@ -36,9 +38,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private int _rotationCompensation = 0;
 	private int _width, _height;
 	private LinkedList<Double> _averages = new LinkedList<Double>();
-	private int cptValidRect = 0, cptIndex = 0;
+	private LinkedList<byte[]> _bytes = new LinkedList<byte[]>();
+	private LinkedList<RectF> _rects = new LinkedList<RectF>();
+	private int cpt = 0;
 	private int PMIN = 5, PMAX = 200, FRAME = 15;
-	
+
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
 
@@ -51,11 +55,25 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		_holder.addCallback(this);
 		_holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 	}
+	
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		if (hasTouched == false) {
+			_bytes.clear();
+			_averages.clear();
+			_rects.clear();
+			launchedTimer = false;
+			hasTouched = true;
+			_endOfTimer = false;
+		}
+		return super.onTouchEvent(event);
+	}
 
 	public void setCamera(Camera camera) {
 		mCamera = camera;
 		if (mCamera != null) {
-			_supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+			_supportedPreviewSizes = mCamera.getParameters()
+					.getSupportedPreviewSizes();
 			requestLayout();
 			faceDetectionSupported();
 			mCamera.setFaceDetectionListener(fdl);
@@ -77,164 +95,166 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		if (_finished) {
 			return;
 		}
-		Size previewSize = camera.getParameters().getPreviewSize();
-
-		int size = previewSize.width * previewSize.height;
-		int[] rgb = new int[size];
-
-		decodeYUV420RGB(rgb, data, previewSize.width, previewSize.height);
 		RectF rect = null;
 		if (_df != null) {
 			rect = _df.getRect();
 		}
 		if (rect != null) {
 			int left = Math.abs((int) rect.left);
-			int right = Math.abs((int) rect.right);
-			int top = Math.abs((int) rect.top);
-			int bottom = Math.abs((int) rect.bottom);
-
-			if(left != 0) {
-				if(!launchedTimer) {
-					timer();	
+			
+			System.err.println(_bytes.size());
+			
+			if (left != 0) {
+				if (!launchedTimer) {
+					_previewSize = camera.getParameters().getPreviewSize();
+					timer();
 					launchedTimer = true;
 				}
-			}
-			
-			if(!_endOfTimer) {
-				cptValidRect++;
-
-				int avg = 0;
-				int k = 0, l = 0, rsize = 0;
-				for (int i = top; i < bottom; i++) {
-					for (int j = left; j < right; j++) {
-						avg += (int) Color.green(rgb[(k * (int) rect.width() + i) + (j + l)]);
-						l = l + 1;
-						rsize = rsize + 1;
-					}
-					k = k + 1;
-					l = 0;
-				}
 				
-				if(rsize != 0) {
-					Double dAvg = Double.valueOf(avg/rsize);
-					_averages.add(dAvg);
-					cptIndex++;
+				if(!_endOfTimer) {
+					_bytes.add(data);
+					_rects.add(rect);
 				}
 			}
+
 		}
 
 		mCamera.addCallbackBuffer(data);
 	}
 
 	public void timer() {
-		new CountDownTimer(5000, 1000) {
+		new CountDownTimer(2300,1000) {
 
 			public void onTick(long millisUntilFinished) {
+				if(_bytes.size()>52) onFinish();
 			}
 
 			public void onFinish() {
-				_endOfTimer	= true;
-				Toast.makeText(_context,"Ok, list size : "+_averages.size(),Toast.LENGTH_SHORT).show();
+				_endOfTimer = true;
+				int size = _previewSize.width * _previewSize.height;
+				int[] rgb = new int[size];
+				int sizeRect = 0;
+
+				for (int i = 0; i < _bytes.size(); i++) {
+					int left = Math.abs((int) _rects.get(i).left);
+					int right = Math.abs((int) _rects.get(i).right);
+					int top = Math.abs((int) _rects.get(i).top);
+					int bottom = Math.abs((int) _rects.get(i).bottom);
+
+					decodeYUV420RGB(rgb, _bytes.get(i), (int) _rects.get(i)
+							.width(), (int) _rects.get(i).height());
+
+					double avg = 0;
+					int k = 0, l = 0, rsize = 0;
+					for (int a = top; a < bottom; a++) {
+						for (int j = left; j < right; j++) {
+							avg += Color.green(rgb[(k* (int) _rects.get(i).width() + a)+ (j + l)]);
+							l = l + 1;
+							rsize = rsize + 1;
+						}
+						k = k + 1;
+						l = 0;
+					}
+
+					if (rsize != 0) {
+						Double dAvg = Double.valueOf(avg / rsize);
+						_averages.add(dAvg);
+					}
+				}
 				
-				System.err.println("La taille est de "+_averages.size());
+				System.err.print("Averages list : ");
+				for (int i = 0; i < _averages.size(); i++) {
+					System.err.print(" " + _averages.get(i));
+				}
+				System.err.println(".");
+
+				System.err.println("La taille est de " + _averages.size());
+
+				System.err.print("Averages list : ");
+				for (int i = 0; i < _averages.size(); i++) {
+					System.err.print(" " + _averages.get(i));
+				}
+				System.err.println(".");
+
 				derive(_averages);
 				System.err.print("Derive list : ");
 				for (int i = 0; i < _averages.size(); i++) {
-					System.err.print(" "+_averages.get(i));
+					System.err.print(" " + _averages.get(i));
 				}
 				System.err.println(".");
-				
+
 				amplification(_averages, 3);
 				System.err.print("Amplification list : ");
 				for (int i = 0; i < _averages.size(); i++) {
-					System.err.print(" "+_averages.get(i));
+					System.err.print(" " + _averages.get(i));
 				}
 				System.err.println(".");
+
+				double v = variations(_averages) / 4.f;
+				System.err.println("Variations size : " + v * 4);
+				System.err.println("Average Size : " + _averages.size());
+				String str = "Nb var. " + ((v - 1) * (15.f / _averages.size())) * 60 + " "
+						+ ((v + 1) * (15.f / _averages.size())) * 60;
 				
-				LinkedList<Integer> list = variations(_averages);
-				System.err.print("Variations list : ");
-				for (int i = 0; i < list.size(); i++) {
-					System.err.print(" "+list.get(i));
-				}
-				System.err.println(".");
-				
-				
-				double v = list.size()/2.f;
-				System.err.println("Variations : "+list.size()+" -- divided : "+(list.size()/2.f));
-				System.err.println("V : "+_averages.size());				
-				System.err.println("Nb var. "+(v / (_averages.size()/15))*60+" "+( (v+1) /(_averages.size()/15) )*60);
+				Toast.makeText(_context, str,Toast.LENGTH_LONG).show();
 			}
 		}.start();
 	}
 
 	public void derive(LinkedList<Double> avgs) {
-		for (int i = 1; i < avgs.size(); i++) {
-			avgs.set(i,(avgs.get(i) - avgs.get(i-1)));
+		double tmp = 0;
+		for (int i = 1; i < avgs.size()-1; i++) {
+			tmp = avgs.get(i+1);
+			avgs.set(i, (avgs.get(i) - tmp));
 		}
+		avgs.set(0,0.0);
 	}
-	
+
 	public void amplification(LinkedList<Double> avgs, int factor) {
 		Double[] tab = new Double[avgs.size()];
 		for (int i = 0; i < avgs.size(); i++) {
-			tab[i] = avgs.get(i)*factor;
+			tab[i] = avgs.get(i) * factor;
 		}
 		for (int i = 0; i < avgs.size(); i++) {
 			avgs.set(i, avgs.get(i) + tab[i]);
-		}		
+		}
 	}
-	
-	public LinkedList<Integer> variations(LinkedList<Double> avgs) {
-		LinkedList<Integer> _v = new LinkedList<Integer>();
-	    boolean up = false;
-	    boolean down = false;
-	    double max = maxValue(avgs);
-	    
-	    System.err.println("Max value : "+max);
-	    
-	    if(max < 0.01) {
-	    	return null;	    	
-	    }
 
-	    int i=0;
-	    int j=0;
-	    
-	    for(Double y : avgs) {
-	        if(y<0 && up == true) {
-		    	System.err.println("Added up : "+y);
-	            i++;
-	            _v.add(j);
-	        }
-	        if(y>0 && down == true) {
-		    	System.err.println("Added down : "+y);
-	            i++;
-	            _v.add(j);
-	        }
-	        if(y<0) {
-		    	System.err.println("Down = true, "+y);
-	            down = true;
-	            up = false;
-	        }
-	        if(y>0) {
-		    	System.err.println("Up = true, "+y);
-	            up = true;
-	            down = false;
-	        }
+	public int variations(LinkedList<Double> avgs) {
+		boolean up = false;
+		boolean down = false;
 
-	        j++;
-	    }
-	    return _v;
+		int i = 0;
+
+		for (Double y : avgs) {
+			if (y < 0 && up == true) {
+				i++;
+			}
+			if (y > 0 && down == true) {
+				i++;
+			}
+			if (y < 0) {
+				down = true;
+				up = false;
+			}
+			if (y > 0) {
+				up = true;
+				down = false;
+			}
+
+		}
+		return i;
 	}
-	
-	
+
 	public double maxValue(LinkedList<Double> avgs) {
-	    double max =0;
-	    for(double i : avgs) {
-	        if(i>max) max=i;
-	    }
-	    return max;
+		double max = 0;
+		for (double i : avgs) {
+			if (i > max)
+				max = i;
+		}
+		return max;
 	}
-	
-	
+
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		try {
