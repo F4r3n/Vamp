@@ -62,6 +62,7 @@ public class HelloOpenCvActivity extends Activity implements
 			_averages.clear();
 			timer();
 			hasTouched = true;
+			isAnalyzing = false;
 			System.err.println("Début !!!!!!!!!!!!!!");
 		}
 		return super.onTouchEvent(event);
@@ -99,6 +100,49 @@ public class HelloOpenCvActivity extends Activity implements
 		}
 	}
 
+	public double max(double[] re) {
+		int end = 150 * _averages.size() / (7 * 60);
+		int deb = 50 * _averages.size() / (7 * 60);
+		double max = 0;
+		int pos = 0;
+		for (int i = deb; i < end; i++) {
+			if (max < re[i]) {
+				max = re[i];
+				pos = i;
+			}
+		}
+		return pos;
+	}
+
+	public double fft() {
+
+		int size = _averages.size();
+		double[] re = new double[1204];
+		double[] im = new double[1204];
+
+		for (int i = 0; i < (1024 - size); i++) {
+			_averages.add(0.0);
+		}
+		size = _averages.size();
+
+		for (int k = 0; k < size / 2; k++) { /* For each output element */
+			double sumreal = 0;
+			double sumimag = 0;
+			int t;
+			for (t = 0; t < size; t++) { /* For each input element */
+				double angle = 2 * Math.PI * (t * k) / ((float) size);
+				sumreal += _averages.get(t) * Math.cos(angle);
+				sumimag -= _averages.get(t) * Math.sin(angle);
+			}
+			re[k] += Math.abs((sumreal) / (size / 2));
+			im[k] += Math.abs((sumimag) / (size / 2));
+
+		}
+
+		return max(re);
+
+	}
+
 	public void timer() {
 		new CountDownTimer(5000, 1000) {
 
@@ -106,12 +150,21 @@ public class HelloOpenCvActivity extends Activity implements
 			}
 
 			public void onFinish() {
+
 				isAnalyzing = true;
-				analyse();
-				System.err.println("OVER");
-				derive(_averages);
-				System.err.println(_averages.size());
-				System.err.println(variations(_averages));
+				if (images.size() != 0) {
+
+					analyse();
+					System.err.println("OVER");
+					System.err.println(_averages);
+					derive(_averages);
+					System.err.println(_averages);
+
+					System.err.println(_averages.size());
+					int v = variations(_averages) / 4;
+					System.err.println(v * 7 * 60 / _averages.size());
+					System.err.println("FFT " + fft() * 7 * 60 / 1024);
+				}
 				hasTouched = false;
 			}
 		}.start();
@@ -179,7 +232,6 @@ public class HelloOpenCvActivity extends Activity implements
 		for (int i = 0; i < facesArray.length; i++) {
 			Core.rectangle(aInputFrame.gray(), facesArray[i].tl(),
 					facesArray[i].br(), new Scalar(255, 255, 255, 255), 3);
-			System.err.println("yop");
 
 		}
 
@@ -191,6 +243,8 @@ public class HelloOpenCvActivity extends Activity implements
 			}
 
 			if (running) {
+				System.err.println("yop");
+
 				images.add(aInputFrame.rgba());
 				upTab.add(up);
 				downTab.add(down);
