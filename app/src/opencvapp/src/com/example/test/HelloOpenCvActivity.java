@@ -24,9 +24,7 @@ import org.opencv.objdetect.CascadeClassifier;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.AvoidXfermode;
 import android.hardware.Camera;
-import android.hardware.Camera.CameraInfo;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
@@ -35,6 +33,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 public class HelloOpenCvActivity extends Activity implements
 		CvCameraViewListener2 {
@@ -138,7 +137,7 @@ public class HelloOpenCvActivity extends Activity implements
 			im[k] += Math.abs((sumimag) / (size / 2));
 
 		}
-
+		System.err.println(re);
 		return max(re);
 
 	}
@@ -163,7 +162,13 @@ public class HelloOpenCvActivity extends Activity implements
 					System.err.println(_averages.size());
 					int v = variations(_averages) / 4;
 					System.err.println(v * 7 * 60 / _averages.size());
-					System.err.println("FFT " + fft() * 7 * 60 / 1024);
+					double result = fft() * 7 * 60 / 1024;
+					System.err.println("FFT " + result);
+					Toast toast = Toast.makeText(getApplicationContext(),
+							"Result" + result, Toast.LENGTH_LONG);
+
+					toast.show();
+					System.gc();
 				}
 				hasTouched = false;
 			}
@@ -300,7 +305,8 @@ public class HelloOpenCvActivity extends Activity implements
 			tmp = avgs.get(i + 1);
 			avgs.set(i, (avgs.get(i) - tmp));
 		}
-		avgs.set(0, 0.0);
+		if (avgs.size() != 0)
+			avgs.set(avgs.size() - 1, 0.0);
 	}
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
