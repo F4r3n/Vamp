@@ -51,6 +51,7 @@ public class HelloOpenCvActivity extends Activity implements
 	private boolean isAnalyzing = false;
 	private boolean hasTouched = false;
 	private static boolean frontCamera = false;
+	private double fps = 0;
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
@@ -79,7 +80,7 @@ public class HelloOpenCvActivity extends Activity implements
 		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
-	public void analyse() {
+	synchronized public void  analyse() {
 		int index = 0;
 		for (Mat image : images) {
 			Point a = upTab.get(index);
@@ -100,8 +101,8 @@ public class HelloOpenCvActivity extends Activity implements
 	}
 
 	public double max(double[] re) {
-		int end = 150 * _averages.size() / (7 * 60);
-		int deb = 50 * _averages.size() / (7 * 60);
+		int end = 150 * _averages.size() / ((int)fps * 60);
+		int deb = 50 * _averages.size() / ((int)fps * 60);
 		double max = 0;
 		int pos = 0;
 		for (int i = deb; i < end; i++) {
@@ -137,13 +138,13 @@ public class HelloOpenCvActivity extends Activity implements
 			im[k] += Math.abs((sumimag) / (size / 2));
 
 		}
-		System.err.println(re);
+		System.err.println(re.toString());
 		return max(re);
 
 	}
 
 	public void timer() {
-		new CountDownTimer(5000, 1000) {
+		new CountDownTimer(10000, 1000) {
 
 			public void onTick(long millisUntilFinished) {
 			}
@@ -152,20 +153,21 @@ public class HelloOpenCvActivity extends Activity implements
 
 				isAnalyzing = true;
 				if (images.size() != 0) {
-
+					fps = images.size() / 10;
+					System.err.println("FPS " + fps);
 					analyse();
 					System.err.println("OVER");
 					System.err.println(_averages);
 					derive(_averages);
 					System.err.println(_averages);
-
 					System.err.println(_averages.size());
 					int v = variations(_averages) / 4;
-					System.err.println(v * 7 * 60 / _averages.size());
-					double result = fft() * 7 * 60 / 1024;
+					System.err.println("Trigger "+ v * fps * 60 / _averages.size());
+					double result = fft() * fps * 60 / 1024;
 					System.err.println("FFT " + result);
 					Toast toast = Toast.makeText(getApplicationContext(),
-							"Result" + result, Toast.LENGTH_LONG);
+							"FFT " + result + "Trigger " + v * fps * 60
+									/ _averages.size(), Toast.LENGTH_LONG);
 
 					toast.show();
 					System.gc();
@@ -212,7 +214,7 @@ public class HelloOpenCvActivity extends Activity implements
 	public void onCameraViewStopped() {
 	}
 
-	public Mat onCameraFrame(CvCameraViewFrame aInputFrame) {
+	 public Mat onCameraFrame(CvCameraViewFrame aInputFrame) {
 		if (frontCamera) {
 			Mat mRgba = aInputFrame.rgba();
 			Mat mRgbaT = mRgba.t();
@@ -305,8 +307,10 @@ public class HelloOpenCvActivity extends Activity implements
 			tmp = avgs.get(i + 1);
 			avgs.set(i, (avgs.get(i) - tmp));
 		}
-		if (avgs.size() != 0)
+		if (avgs.size() != 0) {
 			avgs.set(avgs.size() - 1, 0.0);
+			avgs.set(0, 0.0);
+		}
 	}
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
