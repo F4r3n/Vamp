@@ -52,6 +52,7 @@ public class HelloOpenCvActivity extends Activity implements
 	private boolean hasTouched = false;
 	private static boolean frontCamera = false;
 	private double fps = 0;
+	private int numberOfDetect = 0;
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
@@ -80,7 +81,7 @@ public class HelloOpenCvActivity extends Activity implements
 		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
-	synchronized public void  analyse() {
+	synchronized public void analyse() {
 		int index = 0;
 		for (Mat image : images) {
 			Point a = upTab.get(index);
@@ -101,8 +102,8 @@ public class HelloOpenCvActivity extends Activity implements
 	}
 
 	public double max(double[] re) {
-		int end = 150 * _averages.size() / ((int)fps * 60);
-		int deb = 50 * _averages.size() / ((int)fps * 60);
+		int end = 150 * _averages.size() / ((int) fps * 60);
+		int deb = 50 * _averages.size() / ((int) fps * 60);
 		double max = 0;
 		int pos = 0;
 		for (int i = deb; i < end; i++) {
@@ -114,35 +115,6 @@ public class HelloOpenCvActivity extends Activity implements
 		return pos;
 	}
 
-	public double fft() {
-
-		int size = _averages.size();
-		double[] re = new double[1204];
-		double[] im = new double[1204];
-
-		for (int i = 0; i < (1024 - size); i++) {
-			_averages.add(0.0);
-		}
-		size = _averages.size();
-
-		for (int k = 0; k < size / 2; k++) { /* For each output element */
-			double sumreal = 0;
-			double sumimag = 0;
-			int t;
-			for (t = 0; t < size; t++) { /* For each input element */
-				double angle = 2 * Math.PI * (t * k) / ((float) size);
-				sumreal += _averages.get(t) * Math.cos(angle);
-				sumimag -= _averages.get(t) * Math.sin(angle);
-			}
-			re[k] += Math.abs((sumreal) / (size / 2));
-			im[k] += Math.abs((sumimag) / (size / 2));
-
-		}
-		System.err.println(re.toString());
-		return max(re);
-
-	}
-
 	public void timer() {
 		new CountDownTimer(10000, 1000) {
 
@@ -150,26 +122,45 @@ public class HelloOpenCvActivity extends Activity implements
 			}
 
 			public void onFinish() {
-
+				boolean isHuman = false;
+				double trig = 0;
 				isAnalyzing = true;
 				if (images.size() != 0) {
-					fps = images.size() / 10;
-					System.err.println("FPS " + fps);
-					analyse();
-					System.err.println("OVER");
-					System.err.println(_averages);
-					derive(_averages);
-					System.err.println(_averages);
-					System.err.println(_averages.size());
-					int v = variations(_averages) / 4;
-					System.err.println("Trigger "+ v * fps * 60 / _averages.size());
-					double result = fft() * fps * 60 / 1024;
-					System.err.println("FFT " + result);
+					if (images.size() > 50) {
+						isHuman = true;
+						fps = images.size() / 10;
+						System.err.println("FPS " + fps);
+						analyse();
+						System.err.println("OVER");
+						System.err.println(_averages);
+						derive(_averages);
+						System.err.println(_averages);
+						System.err.println(_averages.size());
+						int v = variations(_averages) / 4;
+						trig = v * fps * 60 / _averages.size();
+
+					}
+					System.err.println("Trigger " + trig);
 					Toast toast = Toast.makeText(getApplicationContext(),
-							"FFT " + result + "Trigger " + v * fps * 60
-									/ _averages.size(), Toast.LENGTH_LONG);
+							" Trigger " + trig, Toast.LENGTH_LONG);
 
 					toast.show();
+					String str = "";
+					if (isHuman) {
+						if ((trig > 150 || trig < 50))
+							isHuman = false;
+						else
+							isHuman = true;
+					}
+					if (isHuman)
+						str = "Human";
+					else
+						str = "No Human";
+
+					Toast result = Toast.makeText(getApplicationContext(), str,
+							Toast.LENGTH_LONG);
+
+					result.show();
 					System.gc();
 				}
 				hasTouched = false;
@@ -214,7 +205,7 @@ public class HelloOpenCvActivity extends Activity implements
 	public void onCameraViewStopped() {
 	}
 
-	 public Mat onCameraFrame(CvCameraViewFrame aInputFrame) {
+	public Mat onCameraFrame(CvCameraViewFrame aInputFrame) {
 		if (frontCamera) {
 			Mat mRgba = aInputFrame.rgba();
 			Mat mRgbaT = mRgba.t();
@@ -250,11 +241,13 @@ public class HelloOpenCvActivity extends Activity implements
 			}
 
 			if (running) {
-				System.err.println("yop");
+				if (facesArray.length != 0) {
+					System.err.println("yop");
 
-				images.add(aInputFrame.rgba());
-				upTab.add(up);
-				downTab.add(down);
+					images.add(aInputFrame.rgba());
+					upTab.add(up);
+					downTab.add(down);
+				}
 
 			}
 		}
@@ -278,21 +271,22 @@ public class HelloOpenCvActivity extends Activity implements
 	public int variations(LinkedList<Double> avgs) {
 		boolean up = false;
 		boolean down = false;
+		float bande = 0.01f;
 
 		int i = 0;
 
 		for (Double y : avgs) {
-			if (y < 0 && up == true) {
+			if (y < bande && up == true) {
 				i++;
 			}
-			if (y > 0 && down == true) {
+			if (y > bande && down == true) {
 				i++;
 			}
-			if (y < 0) {
+			if (y < bande) {
 				down = true;
 				up = false;
 			}
-			if (y > 0) {
+			if (y > bande) {
 				up = true;
 				down = false;
 			}
