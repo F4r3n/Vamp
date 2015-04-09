@@ -23,8 +23,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
-		PreviewCallback {
+public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
@@ -55,7 +54,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		_holder.addCallback(this);
 		_holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 	}
-	
+
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		if (hasTouched == false) {
@@ -73,7 +72,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		mCamera = camera;
 		if (mCamera != null) {
 			_supportedPreviewSizes = mCamera.getParameters()
-					.getSupportedPreviewSizes();
+				.getSupportedPreviewSizes();
 			requestLayout();
 			faceDetectionSupported();
 			mCamera.setFaceDetectionListener(fdl);
@@ -86,9 +85,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 			Log.d("facedetection", "Faces Found: " + faces.length);
 			_df = ((DisplayedFace) (((Activity) getContext()).findViewById(R.id.viewfinder_view)));
 			_df.setFaces(Arrays.asList(faces));
-
 		}
-
 	};
 
 	public void onPreviewFrame(byte[] data, Camera camera) {
@@ -101,24 +98,19 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		}
 		if (rect != null) {
 			int left = Math.abs((int) rect.left);
-			
-			System.err.println(_bytes.size());
-			
+
 			if (left != 0) {
 				if (!launchedTimer) {
 					_previewSize = camera.getParameters().getPreviewSize();
 					timer();
 					launchedTimer = true;
 				}
-				
 				if(!_endOfTimer) {
 					_bytes.add(data);
 					_rects.add(rect);
 				}
 			}
-
 		}
-
 		mCamera.addCallbackBuffer(data);
 	}
 
@@ -126,7 +118,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		new CountDownTimer(2300,1000) {
 
 			public void onTick(long millisUntilFinished) {
-				if(_bytes.size()>52) onFinish();
+				if(_bytes.size() > 52) {
+					onFinish();
+				}
 			}
 
 			public void onFinish() {
@@ -141,8 +135,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 					int top = Math.abs((int) _rects.get(i).top);
 					int bottom = Math.abs((int) _rects.get(i).bottom);
 
-					decodeYUV420RGB(rgb, _bytes.get(i), (int) _rects.get(i)
-							.width(), (int) _rects.get(i).height());
+					decodeYUV420RGB(rgb, _bytes.get(i), (int) _rects.get(i).width(), (int) _rects.get(i).height());
 
 					double avg = 0;
 					int k = 0, l = 0, rsize = 0;
@@ -161,7 +154,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 						_averages.add(dAvg);
 					}
 				}
-				
+
 				System.err.print("Averages list : ");
 				for (int i = 0; i < _averages.size(); i++) {
 					System.err.print(" " + _averages.get(i));
@@ -193,9 +186,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 				double v = variations(_averages) / 4.f;
 				System.err.println("Variations size : " + v * 4);
 				System.err.println("Average Size : " + _averages.size());
-				String str = "Nb var. " + ((v - 1) * (15.f / _averages.size())) * 60 + " "
-						+ ((v + 1) * (15.f / _averages.size())) * 60;
-				
+				String str = "Nb var. " + ((v - 1) * (15.f / _averages.size())) * 60 + " "+ ((v + 1) * (15.f / _averages.size())) * 60;
+
 				Toast.makeText(_context, str,Toast.LENGTH_LONG).show();
 			}
 		}.start();
@@ -221,10 +213,8 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 	}
 
 	public int variations(LinkedList<Double> avgs) {
-		boolean up = false;
-		boolean down = false;
-
 		int i = 0;
+		boolean up = false, down = false;
 
 		for (Double y : avgs) {
 			if (y < 0 && up == true) {
@@ -241,7 +231,6 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 				up = true;
 				down = false;
 			}
-
 		}
 		return i;
 	}
@@ -290,8 +279,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		}
 	}
 
-	private void decodeYUV420RGB(int[] rgb, byte[] yuv420sp, int width,
-			int height) {
+	private void decodeYUV420RGB(int[] rgb, byte[] yuv420sp, int width, int height) {
 		final int frameSize = width * height;
 		for (int j = 0, yp = 0; j < height; j++) {
 			int uvp = frameSize + (j >> 1) * width, u = 0, v = 0;
@@ -325,8 +313,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 					b = 262143;
 				}
 
-				rgb[yp] = 0xff000000 | ((r << 6) & 0xff0000)
-						| ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
+				rgb[yp] = 0xff000000 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
 			}
 		}
 	}
@@ -366,18 +353,16 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 	}
 
 	public int getDisplayRotation(Activity activity) {
-		int rotation = activity.getWindowManager().getDefaultDisplay()
-				.getRotation();
-
+		int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
 		switch (rotation) {
-		case Surface.ROTATION_0:
-			return 0;
-		case Surface.ROTATION_90:
-			return 90;
-		case Surface.ROTATION_180:
-			return 180;
-		case Surface.ROTATION_270:
-			return 270;
+			case Surface.ROTATION_0:
+				return 0;
+			case Surface.ROTATION_90:
+				return 90;
+			case Surface.ROTATION_180:
+				return 180;
+			case Surface.ROTATION_270:
+				return 270;
 		}
 		return rotation;
 	}
@@ -396,33 +381,19 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 		}
 	}
 
-	/*
-	 * float ratio; if(mPreviewSize.height >= mPreviewSize.width) ratio =
-	 * (float) mPreviewSize.height / (float) mPreviewSize.width; else ratio =
-	 * (float) mPreviewSize.width / (float) mPreviewSize.height;
-	 * 
-	 * // One of these methods should be used, second method squishes preview
-	 * slightly
-	 * 
-	 * Camera.Parameters parameters = mCamera.getParameters(); }
-	 */
-
 	private void faceDetectionSupported() {
-
 		Camera.Parameters params = mCamera.getParameters();
 		if (params.getMaxNumDetectedFaces() <= 0) {
-
 			Log.e(TAG, "Face Detection not supported");
 		} else {
-			// Toast toast = Toast.makeText(_context, "Face detected supported",
-			// Toast.LENGTH_SHORT);
-			// toast.show();
+			Toast toast = Toast.makeText(_context, "Face detected supported",
+			Toast.LENGTH_SHORT);
+			toast.show();
 		}
 	}
 
 	@Override
 	protected void onLayout(boolean changed, int l, int t, int r, int b) {
-
 		if (changed && getChildCount() > 0) {
 			final View child = getChildAt(0);
 
@@ -431,6 +402,7 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 
 			int previewWidth = width;
 			int previewHeight = height;
+			
 			if (mPreviewSize != null) {
 				previewWidth = mPreviewSize.width;
 				previewHeight = mPreviewSize.height;
@@ -438,17 +410,12 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback,
 
 			// Center the child SurfaceView within the parent.
 			if (width * previewHeight > height * previewWidth) {
-				final int scaledChildWidth = previewWidth * height
-						/ previewHeight;
-				child.layout((width - scaledChildWidth) / 2, 0,
-						(width + scaledChildWidth) / 2, height);
+				final int scaledChildWidth = previewWidth * height / previewHeight;
+				child.layout((width - scaledChildWidth) / 2, 0, (width + scaledChildWidth) / 2, height);
 			} else {
-				final int scaledChildHeight = previewHeight * width
-						/ previewWidth;
-				child.layout(0, (height - scaledChildHeight) / 2, width,
-						(height + scaledChildHeight) / 2);
+				final int scaledChildHeight = previewHeight * width / previewWidth;
+				child.layout(0, (height - scaledChildHeight) / 2, width, (height + scaledChildHeight) / 2);
 			}
 		}
 	}
-
 }
