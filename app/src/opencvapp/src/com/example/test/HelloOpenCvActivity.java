@@ -35,8 +35,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-public class HelloOpenCvActivity extends Activity implements
-		CvCameraViewListener2 {
+public class HelloOpenCvActivity extends Activity implements CvCameraViewListener2 {
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private CascadeClassifier cascadeClassifier;
 	private Mat grayscaleImage;
@@ -63,14 +62,12 @@ public class HelloOpenCvActivity extends Activity implements
 			timer();
 			hasTouched = true;
 			isAnalyzing = false;
-			System.err.println("Début !!!!!!!!!!!!!!");
 		}
 		return super.onTouchEvent(event);
 	}
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		// Log.i(TAG, "called onCreate");
 		super.onCreate(savedInstanceState);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.helloopencvlayout);
@@ -80,16 +77,15 @@ public class HelloOpenCvActivity extends Activity implements
 		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
-	synchronized public void  analyse() {
+	synchronized public void analyse() {
 		int index = 0;
 		for (Mat image : images) {
+			int size = 0;
+			double green = 0;
 			Point a = upTab.get(index);
 			Point b = downTab.get(index);
-			double green = 0;
-			int size = 0;
 			for (int k = (int) a.y; k < b.y; k++) {
 				for (int l = (int) a.x; l < b.x; l++) {
-
 					double[] t = image.get(k, l);
 					green += t[1];
 					size++;
@@ -115,7 +111,6 @@ public class HelloOpenCvActivity extends Activity implements
 	}
 
 	public double fft() {
-
 		int size = _averages.size();
 		double[] re = new double[1204];
 		double[] im = new double[1204];
@@ -145,12 +140,9 @@ public class HelloOpenCvActivity extends Activity implements
 
 	public void timer() {
 		new CountDownTimer(10000, 1000) {
-
-			public void onTick(long millisUntilFinished) {
-			}
+			public void onTick(long millisUntilFinished) { }
 
 			public void onFinish() {
-
 				isAnalyzing = true;
 				if (images.size() != 0) {
 					fps = images.size() / 10;
@@ -165,9 +157,7 @@ public class HelloOpenCvActivity extends Activity implements
 					System.err.println("Trigger "+ v * fps * 60 / _averages.size());
 					double result = fft() * fps * 60 / 1024;
 					System.err.println("FFT " + result);
-					Toast toast = Toast.makeText(getApplicationContext(),
-							"FFT " + result + "Trigger " + v * fps * 60
-									/ _averages.size(), Toast.LENGTH_LONG);
+					Toast toast = Toast.makeText(getApplicationContext(),"FFT " + result + "Trigger " + v * fps * 60/ _averages.size(), Toast.LENGTH_LONG);
 
 					toast.show();
 					System.gc();
@@ -206,7 +196,6 @@ public class HelloOpenCvActivity extends Activity implements
 
 	public void onCameraViewStarted(int width, int height) {
 		grayscaleImage = new Mat(height, width, CvType.CV_8UC4);
-
 		// The faces will be a 20% of the height of the screen
 		absoluteFaceSize = (int) (height * 0.2);
 	}
@@ -221,25 +210,18 @@ public class HelloOpenCvActivity extends Activity implements
 			Core.flip(mRgba.t(), mRgbaT, 1);
 			Imgproc.resize(mRgbaT, mRgbaT, mRgba.size());
 		}
-		Imgproc.cvtColor(aInputFrame.rgba(), grayscaleImage,
-				Imgproc.COLOR_RGBA2RGB);
-
+		Imgproc.cvtColor(aInputFrame.rgba(), grayscaleImage, Imgproc.COLOR_RGBA2RGB);
 		MatOfRect faces = new MatOfRect();
 
 		// Use the classifier to detect faces
 		if (cascadeClassifier != null) {
-			cascadeClassifier
-					.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
-							new Size(absoluteFaceSize, absoluteFaceSize),
-							new Size());
+			cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2, new Size(absoluteFaceSize, absoluteFaceSize), new Size());
 		}
 
 		// If there are any faces found, draw a rectangle around it
 		Rect[] facesArray = faces.toArray();
 		for (int i = 0; i < facesArray.length; i++) {
-			Core.rectangle(aInputFrame.gray(), facesArray[i].tl(),
-					facesArray[i].br(), new Scalar(255, 255, 255, 255), 3);
-
+			Core.rectangle(aInputFrame.gray(), facesArray[i].tl(), facesArray[i].br(), new Scalar(255, 255, 255, 255), 3);
 		}
 
 		if (isAnalyzing == false) {
@@ -250,18 +232,11 @@ public class HelloOpenCvActivity extends Activity implements
 			}
 
 			if (running) {
-				System.err.println("yop");
-
 				images.add(aInputFrame.rgba());
 				upTab.add(up);
 				downTab.add(down);
-
 			}
 		}
-
-		// Core.rectangle(aInputFrame.rgba(),new Point(10,10),new
-		// Point(30,30),new Scalar(0,0,255));
-
 		return aInputFrame.rgba();
 	}
 
@@ -276,9 +251,7 @@ public class HelloOpenCvActivity extends Activity implements
 	}
 
 	public int variations(LinkedList<Double> avgs) {
-		boolean up = false;
-		boolean down = false;
-
+		boolean up = false, down = false;
 		int i = 0;
 
 		for (Double y : avgs) {
@@ -321,11 +294,9 @@ public class HelloOpenCvActivity extends Activity implements
 
 				try {
 					// Copy the resource into a temp file so OpenCV can load it
-					InputStream is = getResources().openRawResource(
-							R.raw.lbpcascade_frontalface);
+					InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
 					File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-					File mCascadeFile = new File(cascadeDir,
-							"lbpcascade_frontalface.xml");
+					File mCascadeFile = new File(cascadeDir,"lbpcascade_frontalface.xml");
 					FileOutputStream os = new FileOutputStream(mCascadeFile);
 
 					byte[] buffer = new byte[4096];
@@ -336,14 +307,10 @@ public class HelloOpenCvActivity extends Activity implements
 					is.close();
 					os.close();
 
-					// Load the cascade classifier
-					cascadeClassifier = new CascadeClassifier(
-							mCascadeFile.getAbsolutePath());
+					cascadeClassifier = new CascadeClassifier(mCascadeFile.getAbsolutePath());
 				} catch (Exception e) {
 					Log.e("OpenCVActivity", "Error loading cascade", e);
 				}
-
-				// Log.i(TAG, "OpenCV loaded successfully");
 				mOpenCvCameraView.enableView();
 			}
 				break;
@@ -358,22 +325,17 @@ public class HelloOpenCvActivity extends Activity implements
 	@Override
 	public void onResume() {
 		super.onResume();
-		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_8, this,
-				mLoaderCallback);
+		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_8, this, mLoaderCallback);
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.hello_open_cv, menu);
 		return true;
 	}
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
 		if (id == R.id.action_settings) {
 			return true;
