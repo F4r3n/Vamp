@@ -7,7 +7,11 @@ import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
 
-
+/**
+ * La classe MagnificationVideo représente l'activité principale de l'application qui permet de lancer la caméra et les vues désirées.
+ * @author Vimont Ludovic
+ * @author Kotulski Guillaume
+ */
 public class MagnificationVideo extends Activity {
 	private Camera mCamera;
 	private CameraPreview mPreview;
@@ -26,7 +30,12 @@ public class MagnificationVideo extends Activity {
 
 		mPreview.setCamera(mCamera);
 	}
-
+	
+	/**
+	 * La fonction getCameraInstance permet de vérifier si le smartphone que possède la personne possède une caméra frontale si oui
+	 * on ouvre cette dernière sinon on ouvre la caméra arrière.
+	 * @return Camera : la caméra du smartphone.
+	 */
 	public static Camera getCameraInstance() {
 		Camera c = null;
 		try {

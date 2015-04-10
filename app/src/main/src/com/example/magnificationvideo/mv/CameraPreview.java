@@ -10,6 +10,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.RectF;
 import android.hardware.Camera;
+import android.hardware.Camera.FaceDetectionListener;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.os.CountDownTimer;
@@ -22,7 +23,13 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-
+ 
+/**
+ * La classe CameraPreview contient le coeur de l'application, c'est ici qu'est utilisé la fonction onPreviewFrame qui permet 
+ * l'enregistrement de frame en temps réél.
+ * @author Vimont Ludovic
+ * @author Kotulski Guillaume
+ */
 public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
 	private SurfaceHolder _holder;
 	private Camera mCamera;
@@ -71,14 +78,17 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	public void setCamera(Camera camera) {
 		mCamera = camera;
 		if (mCamera != null) {
-			_supportedPreviewSizes = mCamera.getParameters()
-				.getSupportedPreviewSizes();
+			_supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 			requestLayout();
 			faceDetectionSupported();
 			mCamera.setFaceDetectionListener(fdl);
 		}
 	}
-
+	
+	/**
+	 * La classe {@link FaceDetectionListener} permet d'initialiser la classe {@link PreviewCallback} dès lors
+	 * qu'un visage est détécté.
+	 */
 	Camera.FaceDetectionListener fdl = new Camera.FaceDetectionListener() {
 		@Override
 		public void onFaceDetection(Camera.Face[] faces, Camera camera) {
@@ -87,7 +97,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			_df.setFaces(Arrays.asList(faces));
 		}
 	};
-
+	
+	/**
+	 * La fonction onPreviewFrame permet d'enregistrer les données filmées par la caméra, on conserve alors les données
+	 * dans une liste chaînée.
+	 * @param data : les données enregistrer par la caméra par défaut c'est le format YUV, on peut enregistrer directement en RGB mais cette option
+	 * n'est pas supporté par beaucoup de smartphones
+	 * @param camera : la caméra précédemment initialisée
+	 */
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		if (_finished) {
 			return;
@@ -113,9 +130,13 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		}
 		mCamera.addCallbackBuffer(data);
 	}
-
+	
+	/**
+	 * On lance un timer d'une durée de deux secondes et à la fin de ce dernier on réalise un trigger afin de voir si 
+	 * la personne est humaine ou non.
+	 */
 	public void timer() {
-		new CountDownTimer(2300,1000) {
+		new CountDownTimer(2000,1000) {
 
 			public void onTick(long millisUntilFinished) {
 				if(_bytes.size() > 52) {
@@ -184,15 +205,29 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 				System.err.println(".");
 
 				double v = variations(_averages) / 4.f;
+				double fps = _averages.size()/10.0;
+				double trigger = v * fps * 60 / _averages.size();
+				boolean isHuman = false;
+				
+				if(trigger > 150 || trigger < 50) {
+					isHuman = true;
+				} else {
+					isHuman = false;
+				}
+				
 				System.err.println("Variations size : " + v * 4);
 				System.err.println("Average Size : " + _averages.size());
-				String str = "Nb var. " + ((v - 1) * (15.f / _averages.size())) * 60 + " "+ ((v + 1) * (15.f / _averages.size())) * 60;
-
+				String str = "Nb var. " + ((v - 1) * (15.f / _averages.size())) * 60 + " "+ ((v + 1) * (15.f / _averages.size())) * 60+"\nHumain : "+isHuman;
+				
 				Toast.makeText(_context, str,Toast.LENGTH_LONG).show();
 			}
 		}.start();
 	}
-
+	
+	/**
+	 * La fonction derive effectue une dérivée de Taylor sur la liste chainée passée en argument
+	 * @param avgs : la liste des valeurs récupérées pendant la capture 
+	 */
 	public void derive(LinkedList<Double> avgs) {
 		double tmp = 0;
 		for (int i = 1; i < avgs.size()-1; i++) {
@@ -202,6 +237,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		avgs.set(0,0.0);
 	}
 
+	/**
+	 * La fonction d'amplification permet d'amplifier les valeurs obtenues suite à la dérivée de Taylor
+	 * @param avgs : la liste des valeurs récupérées pendant la capture 
+	 * @param factor : le facteur d'amplification
+	 */
 	public void amplification(LinkedList<Double> avgs, int factor) {
 		Double[] tab = new Double[avgs.size()];
 		for (int i = 0; i < avgs.size(); i++) {
@@ -211,7 +251,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			avgs.set(i, avgs.get(i) + tab[i]);
 		}
 	}
-
+	
+	/**
+	 * La fonction variations permet d'effectuer un trigger, c'est à dire on cherche à regarder si la courbe
+	 * passe dans un intervalle donnée, on peut ainsi en déduire un intervalle pour le pouls de la personne enregistrée
+	 * (ou non, si c'est une photo)
+	 * @param avgs : la liste des valeurs récupérées pendant la capture 
+	 * @return i : le nombre de passage dans le seuil
+	 */
 	public int variations(LinkedList<Double> avgs) {
 		int i = 0;
 		boolean up = false, down = false;
@@ -234,7 +281,12 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 		}
 		return i;
 	}
-
+	
+	/**
+	 * La fonction maxValue permet d'effectuer la recherche d'un maximum dans la liste chaînée
+	 * @param avgs 
+	 * @return la valeur maximum disponible dans la liste chaînée
+	 */
 	public double maxValue(LinkedList<Double> avgs) {
 		double max = 0;
 		for (double i : avgs) {
@@ -278,7 +330,14 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 			mCamera = null;
 		}
 	}
-
+	
+	/**
+	 * La fonction decodeYUV420RGB permet de convertir les pixels récupérés du format YUV vers le format RGB
+	 * @param rgb : le tableau vide à remplir
+	 * @param yuv420sp : les données au format yuv
+	 * @param width 
+	 * @param height
+	 */
 	private void decodeYUV420RGB(int[] rgb, byte[] yuv420sp, int width, int height) {
 		final int frameSize = width * height;
 		for (int j = 0, yp = 0; j < height; j++) {
@@ -321,8 +380,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private Size getOptimalPreviewSize(List<Size> sizes, int w, int h) {
 		final double ASPECT_TOLERANCE = 0.1;
 		double targetRatio = (double) w / h;
-		if (sizes == null)
-			return null;
+		if (sizes == null) {
+			return null;			
+		}
 
 		Size optimalSize = null;
 		double minDiff = Double.MAX_VALUE;
@@ -369,15 +429,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		final int width = resolveSize(getSuggestedMinimumWidth(),
-				widthMeasureSpec);
-		final int height = resolveSize(getSuggestedMinimumHeight(),
-				heightMeasureSpec);
+		final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+		final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
 		setMeasuredDimension(width, height);
-
 		if (_supportedPreviewSizes != null) {
-			mPreviewSize = getOptimalPreviewSize(_supportedPreviewSizes, width,
-					height);
+			mPreviewSize = getOptimalPreviewSize(_supportedPreviewSizes, width,height);
 		}
 	}
 
@@ -408,7 +464,6 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 				previewHeight = mPreviewSize.height;
 			}
 
-			// Center the child SurfaceView within the parent.
 			if (width * previewHeight > height * previewWidth) {
 				final int scaledChildWidth = previewWidth * height / previewHeight;
 				child.layout((width - scaledChildWidth) / 2, 0, (width + scaledChildWidth) / 2, height);

@@ -1,5 +1,10 @@
 package com.example.magnificationvideo.mv;
 
+/**
+ * La classe DisplayedFace permet de réaliser un rectangle autour du visage de la personne pour ce faire on va utiliser un canvas et la fonction onDraw.
+ * @author Vimont Ludovic
+ * @author Kotulski Guillaume
+ */
 import java.util.ArrayList;
 import java.util.List;
 
