@@ -31,6 +31,7 @@ import android.widget.Toast;
  * @author Kotulski Guillaume
  */
 public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallback {
+	private Activity _a;
 	private SurfaceHolder _holder;
 	private Camera mCamera;
 	private String TAG = "";
@@ -40,14 +41,9 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	private List<Size> _supportedPreviewSizes;
 	private Context _context;
 	private DisplayedFace _df;
-	private Activity _a;
-	private int _rotationCompensation = 0;
-	private int _width, _height;
 	private LinkedList<Double> _averages = new LinkedList<Double>();
 	private LinkedList<byte[]> _bytes = new LinkedList<byte[]>();
 	private LinkedList<RectF> _rects = new LinkedList<RectF>();
-	private int cpt = 0;
-	private int PMIN = 5, PMAX = 200, FRAME = 15;
 
 	public CameraPreview(Context context, AttributeSet attr) {
 		super(context, attr);
@@ -136,19 +132,16 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 	 * la personne est humaine ou non.
 	 */
 	public void timer() {
-		new CountDownTimer(2000,1000) {
+		new CountDownTimer(2200,1000) {
 
 			public void onTick(long millisUntilFinished) {
-				if(_bytes.size() > 52) {
-					onFinish();
-				}
+
 			}
 
 			public void onFinish() {
 				_endOfTimer = true;
 				int size = _previewSize.width * _previewSize.height;
 				int[] rgb = new int[size];
-				int sizeRect = 0;
 
 				for (int i = 0; i < _bytes.size(); i++) {
 					int left = Math.abs((int) _rects.get(i).left);
@@ -205,11 +198,11 @@ public class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, 
 				System.err.println(".");
 
 				double v = variations(_averages) / 4.f;
-				double fps = _averages.size()/10.0;
-				double trigger = v * fps * 60 / _averages.size();
+				double trigger = v * 15 * 60 / _averages.size();
+				System.err.println(trigger);
 				boolean isHuman = false;
 				
-				if(trigger > 150 || trigger < 50) {
+				if(trigger < 150 || trigger > 50) {
 					isHuman = true;
 				} else {
 					isHuman = false;
